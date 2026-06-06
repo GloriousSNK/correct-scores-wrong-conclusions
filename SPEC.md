@@ -23,9 +23,9 @@ baselines.
 - **gpt-5.5 (latest model)**
 
 ### Time-Series Foundation Models (2)
-- **nieche-chronos-bolt-base-fine-tuned-v2**
-- **chengsenwang-chattime-1-7b-chat**
-<!-- Other time series are: Moirai and TimeFM -->
+- **chronos-t5-large**
+- **timesfm-1.0-200m**
+- **moirai-1.0-R-large**
 
 ### Numerical Baselines (3)
 - **Euler Integration**
