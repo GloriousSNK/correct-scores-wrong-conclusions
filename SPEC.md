@@ -13,15 +13,19 @@ baselines.
 ## Models Under Test
 
 ### Large Language Models (3)
-- **TBD on Azure** — three frontier text-only LLMs (to be selected)
+- **gpt-5.5 (latest model)**
+- **kimi-k2.6**
+- **grok-4-1-fast-reasoning**
 
 ### Vision-Language Models (3)
-- **TBD on Azure** — three frontier multimodal models (to be selected)
+- **qwen-qwen3-vl-32b-thinking**
+- **grok-4-1-fast-reasoning**
+- **gpt-5.5 (latest model)**
 
 ### Time-Series Foundation Models (2)
-- **Chronos**
-- **TimesFM**
-- **Moirai** *(candidate; pick 2 of the 3 for the final run)*
+- **nieche-chronos-bolt-base-fine-tuned-v2**
+- **chengsenwang-chattime-1-7b-chat**
+<!-- Other time series are: Moirai and TimeFM -->
 
 ### Numerical Baselines (3)
 - **Euler Integration**
