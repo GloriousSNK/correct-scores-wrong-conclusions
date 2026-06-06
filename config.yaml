@@ -58,19 +58,19 @@ models:
     deployment: kimi-k2.6
     vision: false
     concurrency: 6
-  - name: deepseek-v4
-    kind: llm
-    deployment: deepseek-v4
-    vision: false
-    concurrency: 6
+ # - name: deepseek-v4
+ #    kind: llm
+ #    deployment: deepseek-v4
+ #    vision: false
+ #    concurrency: 6
   - name: qwen
     kind: llm
-    deployment: qwen-max
+    deployment: qwen-qwen3-vl-32b-reasoning
     vision: true
     concurrency: 6
-  - name: grok-4-fast-reasoning
+  - name: grok-4-1-fast-reasoning
     kind: llm
-    deployment: grok-4-fast-reasoning
+    deployment: grok-4-1-fast-reasoning
     vision: true
     concurrency: 6
 
@@ -89,19 +89,19 @@ models:
 
   - name: chronos
     kind: timeseries
-    variant: chronos
+    variant: nieche-chronos-bolt-base-fine-tuned-v2
     max_prediction_length: 256
     concurrency: 4
-  - name: timesfm
+  - name: chattime
     kind: timeseries
-    variant: timesfm
+    variant: chengsenwang-chattime-1-7b-chat
     max_prediction_length: 256
     concurrency: 4
-  - name: moirai
-    kind: timeseries
-    variant: moirai
-    max_prediction_length: 256
-    concurrency: 4
+  # - name: moirai
+  #   kind: timeseries
+  #   variant: moirai
+  #   max_prediction_length: 256
+  #   concurrency: 4
 
 paths:
   results_dir: results
