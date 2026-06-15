@@ -87,16 +87,22 @@ models:
     method: leapfrog
     step: 0.01
 
-  - name: chronos
-    kind: timeseries
-    variant: nieche-chronos-bolt-base-fine-tuned-v2
-    max_prediction_length: 256
-    concurrency: 4
-  - name: chattime
-    kind: timeseries
-    variant: chengsenwang-chattime-1-7b-chat
-    max_prediction_length: 256
-    concurrency: 4
+  # Time-series models are disabled until their Azure ML real-time endpoints are
+  # deployed. The TimeSeriesPredictor only accepts variant in
+  # {chronos, timesfm, moirai} (see bench/models/timeseries.py), so the chronos
+  # and timesfm variant strings below would make build_predictors() raise at
+  # startup. To re-enable one: deploy its endpoint, add AZURE_<NAME>_ENDPOINT/_KEY
+  # to .env, and set variant to a supported key (chronos | timesfm | moirai).
+  # - name: chronos
+  #   kind: timeseries
+  #   variant: chronos          # was: nieche-chronos-bolt-base-fine-tuned-v2 (invalid)
+  #   max_prediction_length: 256
+  #   concurrency: 4
+  # - name: timesfm
+  #   kind: timeseries
+  #   variant: timesfm          # was: timesfm-chattime-1-7b-chat (invalid)
+  #   max_prediction_length: 256
+  #   concurrency: 4
   # - name: moirai
   #   kind: timeseries
   #   variant: moirai

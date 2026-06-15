@@ -1,0 +1,99 @@
+# Reframed mini-pass: built to answer the questions the first pass could NOT.
+#  - DENSE short horizons to locate each model's predictability cliff (the
+#    scientifically correct metric for chaos), instead of meaningless 60s error.
+#  - ALL 3 regimes incl. changed_hidden -> the in-context system-identification
+#    probe (can a model infer unstated g/L/m from the trajectory?).
+# Outputs to results/mini/* so nothing collides with firstpass / full runs.
+dataset:
+  systems: [1, 2, 3]
+  trajectories_per_cell: 3
+  ground_truth_dt: 0.001
+  total_seconds: 65
+  pre_context_seconds: 10.0
+  seed: 42
+
+regimes:
+  normal:
+    g: 9.81
+    L: [1.0]
+    m: [1.0]
+    damping: 0.0
+  changed_disclosed:
+    g: 3.71
+    L: [1.4, 0.7, 1.1]
+    m: [2.0, 0.6, 1.5]
+    damping: 0.05
+  changed_hidden:
+    g: 1.62
+    L: [0.8, 1.2, 0.9]
+    m: [0.5, 1.8, 1.0]
+    damping: 0.1
+
+initial_conditions:
+  theta_low: -3.0
+  theta_high: 3.0
+  omega_low: -1.0
+  omega_high: 1.0
+
+# Dense short horizons + a couple past the cliff to bracket the fall-off.
+horizons_seconds: [0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.0]
+
+modalities: [coords]
+
+prompting: [no_cot]
+
+rendering:
+  image_size: [512, 512]
+  fps: 30
+  background: "#0a0a0a"
+  grid: true
+  show_trail: false
+
+azure:
+  api_version: "2024-08-01-preview"   # unused on the OpenAI /openai/v1 route
+  request_timeout: 300
+  max_retries: 2
+
+models:
+  # Reasoning models now get a 2048-token no_cot budget (see azure_llm.py) so
+  # they finish thinking and actually emit the JSON answer.
+  - name: kimi-k2.6
+    kind: llm
+    deployment: kimi-k2.6
+    vision: false
+    concurrency: 10
+  - name: llama-4-maverick
+    kind: llm
+    deployment: llama-4-maverick
+    vision: true
+    concurrency: 10
+  - name: grok-4-1-fast-reasoning
+    kind: llm
+    deployment: grok-4-1-fast-reasoning
+    vision: true
+    concurrency: 10
+
+  - name: euler
+    kind: numerical
+    method: euler
+    step: 0.01
+  - name: rk4
+    kind: numerical
+    method: rk4
+    step: 0.01
+  - name: symplectic
+    kind: numerical
+    method: leapfrog
+    step: 0.01
+
+paths:
+  results_dir: results/mini
+  checkpoints_dir: results/mini/checkpoints
+  raw_dir: results/mini/raw
+  summary_dir: results/mini/summary
+  dataset_dir: results/mini/dataset
+  renders_dir: results/mini/renders
+
+metrics:
+  divergence_threshold_rad: 0.5
+  divergence_threshold_xy: 0.5
