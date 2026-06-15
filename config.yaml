@@ -47,32 +47,54 @@ azure:
   request_timeout: 120
   max_retries: 4
 
+nim:
+  base_url: "https://integrate.api.nvidia.com/v1"
+  request_timeout: 120
+  max_retries: 4
+
 models:
-  - name: gpt-5.5
-    kind: llm
-    deployment: gpt-5.5
-    vision: true
-    concurrency: 6
+  # GPT-5.5: deferred to next round (requires AWS Bedrock — no AWS this round)
+  # - name: gpt-5.5
+  #   kind: llm
+  #   deployment: gpt-5.5
+  #   vision: true
+  #   concurrency: 6
+
   - name: kimi-k2.6
     kind: llm
     deployment: kimi-k2.6
     vision: false
     concurrency: 6
- # - name: deepseek-v4
- #    kind: llm
- #    deployment: deepseek-v4
- #    vision: false
- #    concurrency: 6
-  - name: qwen
+
+  - name: deepseek-v4-pro
     kind: llm
-    deployment: qwen-qwen3-vl-32b-reasoning
-    vision: true
+    deployment: deepseek-v4-pro
+    vision: false
     concurrency: 6
+
+  # qwen: deferred to next round (requires AWS Bedrock — no AWS this round)
+  # - name: qwen
+  #   kind: llm
+  #   deployment: qwen-qwen3-vl-32b-reasoning
+  #   vision: true
+  #   concurrency: 6
+
   - name: grok-4-1-fast-reasoning
     kind: llm
     deployment: grok-4-1-fast-reasoning
     vision: true
     concurrency: 6
+
+  # llama-4-maverick: dropped after firstpass run (119/180 success, 61 failures).
+  # Root cause: sustained 429 RateLimitReached errors mid-run on Azure AI Foundry;
+  # no per-model rate-limit increase was available at the time. The 61 failed cells
+  # are systematically missing (not random), so partial results cannot be used safely.
+  # Firstpass results preserved in results/firstpass/checkpoints/ for reference.
+  # - name: llama-4-maverick
+  #   kind: llm
+  #   deployment: llama-4-maverick
+  #   vision: false
+  #   concurrency: 6
 
   - name: euler
     kind: numerical
@@ -87,20 +109,33 @@ models:
     method: leapfrog
     step: 0.01
 
-  # Time-series models are disabled until their Azure ML real-time endpoints are
-  # deployed. The TimeSeriesPredictor only accepts variant in
-  # {chronos, timesfm, moirai} (see bench/models/timeseries.py), so the chronos
-  # and timesfm variant strings below would make build_predictors() raise at
-  # startup. To re-enable one: deploy its endpoint, add AZURE_<NAME>_ENDPOINT/_KEY
-  # to .env, and set variant to a supported key (chronos | timesfm | moirai).
+  # Learned dynamics models — weights must be trained first via:
+  #   python scripts/train_learned.py --output-dir results/learned_models
+  # or submitted as an Azure ML job via scripts/azure_ml_job.py
+  - name: neural-ode
+    kind: learned
+    variant: neural_ode
+    checkpoint: results/learned_models/neural_ode.pt
+  - name: hnn
+    kind: learned
+    variant: hnn
+    checkpoint: results/learned_models/hnn.pt
+  - name: lnn
+    kind: learned
+    variant: lnn
+    checkpoint: results/learned_models/lnn.pt
+    hidden: 64
+    layers: 2
+
+  # Time-series models: disabled until Azure ML endpoints are deployed.
   # - name: chronos
   #   kind: timeseries
-  #   variant: chronos          # was: nieche-chronos-bolt-base-fine-tuned-v2 (invalid)
+  #   variant: chronos
   #   max_prediction_length: 256
   #   concurrency: 4
   # - name: timesfm
   #   kind: timeseries
-  #   variant: timesfm          # was: timesfm-chattime-1-7b-chat (invalid)
+  #   variant: timesfm
   #   max_prediction_length: 256
   #   concurrency: 4
   # - name: moirai
@@ -116,6 +151,7 @@ paths:
   summary_dir: results/summary
   dataset_dir: results/dataset
   renders_dir: results/renders
+  learned_models_dir: results/learned_models
 
 metrics:
   divergence_threshold_rad: 0.5

@@ -22,8 +22,9 @@ from bench.rendering import render_state_b64
 from bench.runner import build_eval_cells, run_all
 from bench.models.numerical import NumericalPredictor
 from bench.models.azure_llm import AzureFoundryPredictor
+from bench.models.nim_llm import NimPredictor
 from bench.models.timeseries import TimeSeriesPredictor
-from bench.models.learned import LearnedPredictor
+from bench.models.learned import NeuralODEPredictor, HNNPredictor, LNNPredictor, LearnedPredictor
 
 def load_trajectory(path: str) -> Trajectory:
     with open(path, "r", encoding="utf-8") as f:
@@ -80,6 +81,14 @@ def build_predictors(cfg: dict, only: set[str] | None = None) -> dict:
                 max_retries=int(azure_cfg.get("max_retries", 4)),
                 api_version=str(azure_cfg.get("api_version", "2024-08-01-preview")),
             )
+        elif kind == "nim_llm":
+            nim_cfg = cfg.get("nim", {})
+            preds[name] = NimPredictor(
+                name=name, deployment=mdef["deployment"],
+                concurrency=int(mdef.get("concurrency", 4)),
+                request_timeout=float(nim_cfg.get("request_timeout", 120)),
+                max_retries=int(nim_cfg.get("max_retries", 4)),
+            )
         elif kind == "timeseries":
             preds[name] = TimeSeriesPredictor(
                 name=name, variant=mdef.get("variant", ""),
@@ -90,7 +99,22 @@ def build_predictors(cfg: dict, only: set[str] | None = None) -> dict:
                 max_retries=int(azure_cfg.get("max_retries", 4)),
             )
         elif kind == "learned":
-            preds[name] = LearnedPredictor(name=name, variant=mdef.get("variant", ""))
+            variant    = mdef.get("variant", "")
+            checkpoint = mdef.get("checkpoint", "")
+            hidden     = int(mdef.get("hidden", 256))
+            layers     = int(mdef.get("layers", 3))
+            if variant == "neural_ode":
+                preds[name] = NeuralODEPredictor(name=name, checkpoint=checkpoint,
+                                                  hidden=hidden, layers=layers)
+            elif variant == "hnn":
+                preds[name] = HNNPredictor(name=name, checkpoint=checkpoint,
+                                            hidden=hidden, layers=layers)
+            elif variant == "lnn":
+                preds[name] = LNNPredictor(name=name, checkpoint=checkpoint,
+                                            hidden=hidden, layers=layers)
+            else:
+                preds[name] = LearnedPredictor(name=name, variant=variant,
+                                               checkpoint=checkpoint)
         else:
             raise ValueError(f"unknown model kind: {kind}")
     return preds
