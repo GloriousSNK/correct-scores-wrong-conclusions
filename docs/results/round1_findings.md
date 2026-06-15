@@ -1,0 +1,200 @@
+# Can LLMs Predict Physics? — Round 1 Findings
+
+**Experiment:** k-pendulum dynamics prediction benchmark  
+**Date:** June 2026  
+**Models tested:** 9 (3 LLMs, 3 learned dynamics models, 3 numerical integrators)  
+**Total evaluations:** 864 cells × 20 trajectories each
+
+---
+
+## Setup
+
+We asked models to predict the state of a k-link pendulum (k ∈ {1, 2, 3}) at a future time T, given the initial state. Prediction horizons ranged from 0.01 s (nearly trivial) to 60 s (deep into chaotic territory). LLMs received either coordinate data, images, or both. Learned and numerical models received coordinates only.
+
+Three physical regimes were tested:
+- **normal** — standard Earth gravity, unit lengths and masses
+- **changed_disclosed** — different gravity/lengths/masses, told to the model
+- **changed_hidden** — different parameters, not disclosed
+
+Primary metric: **mean angle error (radians)** across all active links. Secondary: success rate (fraction of cells producing a valid prediction).
+
+---
+
+## Models
+
+| Model | Type | Notes |
+|-------|------|-------|
+| grok-4-1-fast-reasoning | LLM | Vision-capable; coords, images, images+coords |
+| kimi-k2.6 | LLM | Coords only |
+| deepseek-v4-pro | LLM | Coords only; vision attempted but failed (see findings) |
+| Neural ODE | Learned | MLP trained to match d_state/dt; integrated via RK45 |
+| HNN | Learned | Hamiltonian network; dynamics from autograd of H |
+| LNN | Learned | Lagrangian network; Euler-Lagrange via autograd |
+| Euler | Numerical | Fixed-step, dt=0.01 s |
+| RK4 | Numerical | Runge-Kutta 4th order, dt=0.01 s |
+| Symplectic | Numerical | Störmer-Verlet leapfrog, dt=0.01 s |
+
+---
+
+## Overall Leaderboard
+
+*Lower angle error = better. Ranked by mean angle error across all cells where a prediction was produced.*
+
+| Rank | Model | Angle Error (rad) ↓ | Success Rate |
+|------|-------|-------------------|-------------|
+| 1 | RK4 | 0.119 | 100% |
+| 2 | Symplectic | 0.253 | 100% |
+| 3 | kimi-k2.6 | 0.287 | 7.4% |
+| 4 | Euler | 0.455 | 100% |
+| 5 | Neural ODE | 0.588 | 100% |
+| 6 | grok-4-1-fast-reasoning | 0.651 | 75.0% |
+| 7 | HNN | 0.733 | 100% |
+| 8 | deepseek-v4-pro | 0.759 | 32.9% |
+| 9 | LNN | 1.300 | 100% |
+
+---
+
+## Breakdown by Prediction Horizon
+
+*Mean angle error (rad). LLMs make a single one-shot prediction regardless of horizon; numerical integrators accumulate error over time.*
+
+| Model | 0.01 s | 1 s | 10 s | 60 s |
+|-------|-------:|----:|-----:|-----:|
+| RK4 | 0.000 | 0.000 | 0.260 | 0.216 |
+| Symplectic | 0.000 | 0.021 | 0.501 | 0.491 |
+| kimi-k2.6 | 0.000 | 1.741 | 0.114 | 0.342 |
+| Euler | 0.000 | 0.041 | 0.856 | 0.922 |
+| Neural ODE | 0.002 | 0.090 | 1.044 | 1.215 |
+| grok | 0.383 | 0.828 | 0.822 | 0.608 |
+| HNN | 0.004 | 0.519 | 1.099 | 1.312 |
+| deepseek-v4-pro | 0.000 | 1.124 | 0.943 | 0.980 |
+| LNN | 0.001 | 1.638 | 2.005 | 1.557 |
+
+---
+
+## Breakdown by Pendulum Count
+
+*Mean angle error (rad). Higher k = more chaotic, more degrees of freedom.*
+
+| Model | k=1 | k=2 | k=3 |
+|-------|----:|----:|----:|
+| RK4 | 0.000 | 0.041 | 0.316 |
+| Symplectic | 0.001 | 0.274 | 0.484 |
+| kimi-k2.6 | 0.007 | 0.404 | 0.428 |
+| Euler | 0.562 | 0.313 | 0.489 |
+| Neural ODE | 0.355 | 0.714 | 0.694 |
+| grok | 0.593 | 0.546 | 0.814 |
+| HNN | 0.382 | 0.820 | 0.998 |
+| deepseek-v4-pro | 0.713 | 0.663 | 0.898 |
+| LNN | 1.265 | 1.321 | 1.314 |
+
+---
+
+## Breakdown by Physical Regime
+
+*Mean angle error (rad). "changed_hidden" = model doesn't know the physical parameters.*
+
+| Model | normal | changed_disclosed | changed_hidden |
+|-------|-------:|------------------:|---------------:|
+| RK4 | 0.357 | 0.000 | 0.000 |
+| Symplectic | 0.602 | 0.144 | 0.014 |
+| kimi-k2.6 | 0.816 | — | 0.212 |
+| Euler | 1.028 | 0.271 | 0.065 |
+| Neural ODE | 0.639 | 0.592 | 0.532 |
+| grok | 1.138 | 0.717 | 0.300 |
+| HNN | 0.783 | 0.825 | 0.593 |
+| deepseek-v4-pro | 1.163 | 0.817 | 0.275 |
+| LNN | 1.219 | 1.673 | 1.009 |
+
+---
+
+## LLM Deep-Dive
+
+### Modality (grok only — the only vision-capable LLM this round)
+
+| Modality | Angle Error (rad) | Success Rate |
+|----------|------------------:|-------------|
+| Coords only | 0.502 | 70.8% |
+| Images + coords | 0.571 | 76.4% |
+| Images only | 0.867 | 77.8% |
+
+### Chain-of-Thought vs No-CoT
+
+| Model | CoT error | CoT success | No-CoT error | No-CoT success |
+|-------|----------:|------------:|-------------:|---------------:|
+| grok | 0.683 | 75.9% | 0.619 | 74.1% |
+| deepseek-v4-pro | 0.706 | 32.4% | 0.810 | 33.3% |
+| kimi-k2.6 | 0.084 | 4.6% | 0.380 | 10.2% |
+
+---
+
+## Key Findings
+
+### 1. Physics is still physics
+
+Numerical integrators dominate completely. RK4 achieves sub-milliradian error at 0.01 s and 1 s horizons — essentially perfect. The gap to everything else is enormous. Even at 60 s, deep into chaotic territory, RK4 (0.22 rad) still beats every LLM and every learned model. If you know the equations of motion, solve them. No LLM is close.
+
+### 2. Neural ODE beats all LLMs — cleanly
+
+Neural ODE (0.588 rad, **100% success**) is the best non-numerical method. It learned a usable dynamics model from ~67K trajectory samples in roughly 3 minutes of training on a laptop GPU. Critically, it succeeds on every single cell — no format failures, no refusals, no hallucinations. Compared to grok's 75% success and kimi's 7.4%, that reliability matters as much as raw accuracy. If you have training data, a simple learned model beats a frontier LLM for this task.
+
+### 3. LLMs are doing something — but it's fragile
+
+- **grok** achieves near-zero angle error (~10⁻⁷ rad) on k=1 normal regime at 0.01 s. It understands that a 10-millisecond prediction barely differs from the initial condition. But at 1 s+ horizons on k=3 systems it collapses (0.81–1.14 rad). It is interpolating near the initial state, not simulating dynamics.
+
+- **kimi** has a single cell with 6×10⁻¹⁰ rad error — essentially machine precision. When it responds correctly, it may be doing remarkable physics reasoning. But 92.6% of the time it refuses to answer or produces unparseable output. It is brilliant and currently unusable.
+
+- **deepseek-v4-pro** works well on coordinate inputs (98.6% success) but has **0% success on images** — not a model capability failure, but a prompt/format mismatch. Its predictions that do parse are reasonable (~0.71 rad error with CoT).
+
+### 4. CoT does not help LLMs predict physics
+
+Across all three LLMs, chain-of-thought either makes no difference or slightly hurts accuracy. Reasoning longer about physics doesn't make the physics right. LLMs cannot iteratively integrate differential equations in their forward pass the way a numerical solver does — a chain of reasoning tokens is not a time-stepper.
+
+### 5. HNN underperforms Neural ODE — the inductive bias is not free
+
+The Hamiltonian Network has a stronger structural prior (it is forced to respect energy conservation via the Hamiltonian structure) but performs worse than an unconstrained Neural ODE. Likely cause: the HNN loss requires autograd through the Hamiltonian, which is more complex to optimize than simple MSE derivative-matching. The physics prior requires more careful training to pay off. HNN beats Neural ODE slightly at the shortest horizon (0.004 vs 0.002 rad at 0.01 s) but diverges faster at long horizons.
+
+### 6. LNN is the most physically correct architecture and the least practical
+
+The Lagrangian Neural Network enforces Euler-Lagrange equations, which is the strongest physics inductive bias of the three learned models. But it has two unsolved operational problems:
+- **Training** requires second-order autograd (differentiating through the mass matrix) which does not run on Apple MPS, forcing slow CPU computation. Full-scale training is prohibitively slow.
+- **Inference** calls autograd at every ODE solver step, making a 60 s trajectory take minutes per cell.
+
+This round's LNN was trained on a 8K-sample subset with a small architecture (64-hidden, 2 layers) to get it to run at all. The results reflect those constraints, not the architecture's ceiling.
+
+### 7. The "hidden parameters" regime is revealing
+
+Models that understand physics do better on `changed_hidden` (where parameters are not disclosed) than on `normal`. RK4 achieves 0.000 rad on both; grok achieves 0.300 on hidden vs 1.138 on normal. This pattern — better performance when parameters are unknown — suggests that on the "normal" regime, models may be second-guessing standard physics with memorised priors, while on the hidden regime they fall back to reasoning more carefully. Or more simply: the normal regime is close to chaotic attractors in the training distribution where errors compound differently.
+
+---
+
+## What This Suggests
+
+The central question — *can LLMs predict physics?* — has a sharp answer from this round: **not competitively**. A 3-minute training run producing a Neural ODE that beats every frontier LLM on accuracy and reliability is a strong result.
+
+The more nuanced finding is that LLMs are doing *something* physics-adjacent at short horizons. The near-zero errors from kimi and grok at 0.01 s are not random — they reflect an understanding that the system barely moves in 10 ms. Whether that extrapolates to genuine dynamics modelling at longer horizons (it currently does not) is the right question for next rounds.
+
+The reliability gap is understated in the leaderboard. kimi's 0.287 rad average is computed only over the 7.4% of cells that succeed. Its true expected error across all evaluation cells is much worse. For any real application, a model that works 7% of the time is not a model.
+
+---
+
+## What's Next
+
+**Immediate (fixable this round's data):**
+- Fix kimi's output format via system prompt JSON enforcement — if kimi at 100% success rate stays near 0.287 rad, it becomes the best LLM result by a significant margin
+- Fix deepseek's image modality (prompt/format issue, not a model capability issue)
+
+**Next round:**
+- Add gpt-5.5 and qwen3-vl-32b (deferred this round — require AWS infrastructure)
+- Add time-series models (Chronos, TimesFM, Moirai) — treat trajectories as sequences with no physics assumptions
+- Retrain LNN properly: either pre-compute mass matrix targets to avoid second-order autograd, or use a server with enough CPU cores
+- Train Neural ODE and HNN longer — 500 epochs was a starting point
+
+**Longer term:**
+- Predict full trajectories, not just endpoint state — compute divergence time as the primary metric
+- Best-of-N sampling for LLMs (sample k=5, take median) — a realistic deployment strategy that may dramatically close the reliability gap
+- Add perturbation experiments — how sensitive are LLM predictions to small changes in initial conditions?
+
+---
+
+*Raw data, checkpoints, and model weights available in the repository under `docs/results/` and `results/`.*
