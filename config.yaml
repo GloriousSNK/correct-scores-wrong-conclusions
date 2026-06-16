@@ -65,11 +65,13 @@ models:
     deployment: kimi-k2.6
     vision: false
     concurrency: 6
+    max_tokens: 65536      # kimi burns ~10-13k tokens on chain-of-thought; 16k cap causes truncation before answer
+    request_timeout: 300   # kimi takes 2-4 min per cell at 20k+ output tokens; 120s global default times out
 
   - name: deepseek-v4-pro
     kind: llm
     deployment: deepseek-v4-pro
-    vision: false
+    vision: true  # was false — model supports vision; image cells failed because of this flag, not capability
     concurrency: 6
 
   # qwen: deferred to next round (requires AWS Bedrock — no AWS this round)

@@ -77,9 +77,10 @@ def build_predictors(cfg: dict, only: set[str] | None = None) -> dict:
                 name=name, deployment=mdef["deployment"],
                 vision=bool(mdef.get("vision", False)),
                 concurrency=int(mdef.get("concurrency", 4)),
-                request_timeout=float(azure_cfg.get("request_timeout", 120)),
+                request_timeout=float(mdef.get("request_timeout", azure_cfg.get("request_timeout", 120))),
                 max_retries=int(azure_cfg.get("max_retries", 4)),
                 api_version=str(azure_cfg.get("api_version", "2024-08-01-preview")),
+                max_tokens=int(mdef.get("max_tokens", 16384)),
             )
         elif kind == "nim_llm":
             nim_cfg = cfg.get("nim", {})

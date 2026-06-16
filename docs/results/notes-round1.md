@@ -81,15 +81,32 @@
   ---
   Next Steps
 
+  **UPDATE — June 15, 2026 patch run:**
+
+  Items 1 and 2 were fixed and re-evaluated (~$6, ~2h wall time).
+
+  Fix 1 (kimi): Root cause was `max_tokens=16384` truncating the chain-of-thought
+  before the JSON answer, not a prompt format issue. Fixed via `max_tokens: 65536`
+  and `request_timeout: 300` as per-model config fields.
+  Result: coords success 7.4% → 88.9% (64/72). Angle error 0.033 rad median.
+  Breakdown: h=0.01s → 0.000, h=1s → 0.623 mean/0.314 median, h=10s → 0.721/0.351.
+  Remaining: 3 timeouts, 5 parse errors, 8 NaN predictions.
+
+  Fix 2 (deepseek images): Root cause was `vision: false` in config.yaml — no API
+  call was ever made for image cells. Fixed by setting `vision: true`.
+  Result: images 0% → 100% (72/72, 0.871 rad), images_coords 0% → 100% (72/72,
+  0.780 rad). Coords unchanged at 98.6%.
+
+  Key takeaway: kimi at 0.033 rad median on coords (when it works) is competitive
+  with symplectic integrator. DeepSeek with images is slightly worse than
+  coords-only — visual input adds noise when the numbers are already in the prompt.
+
+  ---
+  Next Steps (post-patch):
+
   High priority:
 
-  1. Fix kimi's output format — enforce JSON output via system prompt or Azure
-  inference parameters. If kimi at 100% success rate is anywhere near 0.287 rad, it
-  becomes the best LLM result by a wide margin.
-  2. Fix deepseek's image modality — it currently has 0% success on
-  images/images_coords. Almost certainly a prompt or system message issue.
-  DeepSeek-V4-Pro does support vision; fix the parser or format string.
-  3. Add gpt-5.5 and qwen3-vl-32b (Round 2, needs AWS) — the vision-capable
+  1. Add gpt-5.5 and qwen3-vl-32b (Round 2, needs AWS) — the vision-capable
   reasoning models are the most interesting comparison point, and both were
   deferred only due to infrastructure, not model capability.
 

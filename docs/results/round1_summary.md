@@ -27,8 +27,8 @@ Each cell is averaged over 20 trajectories. The primary metric is **mean angle e
 | Model | Kind | Modalities | Notes |
 |-------|------|-----------|-------|
 | grok-4-1-fast-reasoning | LLM | coords, images, images_coords | Azure AI Foundry |
-| kimi-k2.6 | LLM | coords only | Azure AI Foundry; 0% success in pre-round test |
-| deepseek-v4-pro | LLM | coords only | Azure AI Foundry; freshly deployed this round |
+| kimi-k2.6 | LLM | coords only | Azure AI Foundry; 88.9% coords success after patch (was 7.4%) |
+| deepseek-v4-pro | LLM | coords, images, images_coords | Azure AI Foundry; images fixed post-patch (was vision: false) |
 | neural-ode | Learned | coords | Trained on full dataset (~67K samples), 500 epochs, MPS |
 | hnn | Learned | coords | Hamiltonian Neural Network, same training setup |
 | lnn | Learned | coords | Lagrangian Neural Network; trained on 8K subsampled data, 200 epochs, 64-hidden/2-layer due to CPU cost of second-order autograd |

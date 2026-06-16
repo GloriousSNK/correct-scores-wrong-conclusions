@@ -46,7 +46,8 @@ class AzureFoundryPredictor:
 
     def __init__(self, name: str, deployment: str, *, vision: bool = False,
                  concurrency: int = 6, request_timeout: float = 120.0,
-                 max_retries: int = 4, api_version: str = "2024-08-01-preview"):
+                 max_retries: int = 4, api_version: str = "2024-08-01-preview",
+                 max_tokens: int = 16384):
         if not _HAVE_AZURE:
             raise RuntimeError(
                 "openai SDK is not installed. Run "
@@ -58,6 +59,7 @@ class AzureFoundryPredictor:
         self.request_timeout = request_timeout
         self.max_retries = max_retries
         self.api_version = api_version
+        self.max_tokens = max_tokens
         self._sem = asyncio.Semaphore(concurrency)
         self._client: Optional[AsyncOpenAI] = None
 
@@ -121,10 +123,7 @@ class AzureFoundryPredictor:
                             messages=messages,
                             model=self.deployment,
                             temperature=0.0,
-                            # Thinking models (kimi-k2.6) burn ~7-8k tokens reasoning
-                            # on this task before emitting the answer; a tight cap
-                            # leaves content empty. 16k gives headroom to finish.
-                            max_tokens=16384,
+                            max_tokens=self.max_tokens,
                         ),
                         timeout=self.request_timeout,
                     )

@@ -178,11 +178,49 @@ The reliability gap is understated in the leaderboard. kimi's 0.287 rad average 
 
 ---
 
-## What's Next
+## Post-Round 1 Patch — June 15, 2026
 
-**Immediate (fixable this round's data):**
-- Fix kimi's output format via system prompt JSON enforcement — if kimi at 100% success rate stays near 0.287 rad, it becomes the best LLM result by a significant margin
-- Fix deepseek's image modality (prompt/format issue, not a model capability issue)
+Both immediate fixes were applied and re-evaluated (~$6, ~2h total wall time).
+
+### Fix 1: Kimi token truncation
+
+**Root cause (not a format issue):** kimi-k2.6 writes 10–13k tokens of chain-of-thought before outputting JSON. The hardcoded `max_tokens=16384` cap cut off 40/56 failing cells mid-reasoning before they reached the answer. A further 36 cells hit the 120s API timeout once given more token budget.
+
+**Fix:** `max_tokens: 65536` and `request_timeout: 300` as per-model config fields. Both parameters are now configurable per model in `config.yaml`.
+
+**Result:**
+
+| | Round 1 | After fix |
+|---|---|---|
+| Coords success | ~22% | **88.9%** (64/72) |
+| Angle error (mean) | 0.287 rad | 0.447 rad |
+| Angle error (median) | — | **0.033 rad** |
+
+The mean rising while the median falls sharply is expected: Round 1's 0.287 rad was computed over 16 cherry-picked easy cells (long horizon equilibrium cases). Now 64 cells succeed including hard chaotic ones. The 0.033 rad median shows kimi is genuinely accurate on most predictions.
+
+By horizon: h=0.01s → 0.000 rad (near-perfect), h=1s → 0.623 mean / 0.314 median, h=10s → 0.721 mean / 0.351 median.
+
+Remaining failures: 3 timeouts, 5 parse errors, 8 NaN predictions — minor edge cases.
+
+### Fix 2: DeepSeek image modality
+
+**Root cause:** `vision: false` in `config.yaml`. All 144 image/images_coords cells returned immediately with "not configured for vision modality" — no API call was ever made.
+
+**Fix:** `vision: true` for deepseek-v4-pro. The standard OpenAI `image_url` payload format works correctly.
+
+**Result:**
+
+| Modality | Round 1 | After fix |
+|---|---|---|
+| Coords | 98.6% | 98.6% (unchanged) |
+| Images | 0% | **100%** (72/72), 0.871 rad |
+| Images+coords | 0% | **100%** (72/72), 0.780 rad |
+
+DeepSeek with visual input is slightly worse than coords-only (0.759 rad) — images add noise for a model that already has the numbers.
+
+---
+
+## What's Next
 
 **Next round:**
 - Add gpt-5.5 and qwen3-vl-32b (deferred this round — require AWS infrastructure)
