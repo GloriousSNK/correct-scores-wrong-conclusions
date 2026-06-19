@@ -106,6 +106,47 @@ def build_training_samples(dataset_dir: str) -> tuple[np.ndarray, np.ndarray, np
             np.array(all_params,  dtype=np.float32))
 
 
+def build_rollout_samples(dataset_dir: str, rollout_steps: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Returns (states_0, states_k, params) for k-step rollout training.
+
+    states_0: (N, 6)  padded state at time t
+    states_k: (N, 6)  padded state at time t + rollout_steps * dt
+    params:   (N, 9)  encoded physical parameters
+    """
+    manifest = _load_manifest(dataset_dir)
+    all_s0, all_sk, all_params = [], [], []
+
+    for entry in manifest:
+        traj  = _load_trajectory(entry)
+        k     = int(traj["number_of_pendulums"])
+        c     = traj["constants"]
+        p     = PendulumParams.make(k=k, L=c["L"], m=c["m"],
+                                    g=c["g"], damping=c["damping"])
+
+        theta = np.array(traj["theta"])   # (T, k)
+        omega = np.array(traj["omega"])   # (T, k)
+        T     = len(theta)
+
+        params9 = np.zeros(PARAM_DIM, dtype=np.float32)
+        params9[0] = k
+        params9[1] = p.g
+        params9[2:2+k] = p.L
+        params9[5:5+k] = p.m
+        params9[8]     = p.damping
+
+        for i in range(T - rollout_steps):
+            s0 = _pad_state(np.concatenate([theta[i],                 omega[i]]),                 k)
+            sk = _pad_state(np.concatenate([theta[i + rollout_steps], omega[i + rollout_steps]]), k)
+            all_s0.append(s0)
+            all_sk.append(sk)
+            all_params.append(params9)
+
+    return (np.array(all_s0,    dtype=np.float32),
+            np.array(all_sk,    dtype=np.float32),
+            np.array(all_params, dtype=np.float32))
+
+
 # ── Training helpers ──────────────────────────────────────────────────────────
 
 def _make_loader(states, derivs, params, batch_size: int, device):
@@ -139,6 +180,46 @@ def _train_node(states, derivs, params, *, epochs, lr, batch_size, hidden, layer
         sched.step()
         if epoch % 50 == 0 or epoch == 1:
             print(f"  [NODE] epoch {epoch:4d}/{epochs}  loss={total_loss/len(states):.6f}")
+
+    return model
+
+
+def _train_node_rollout(states_0, states_k, params, *,
+                        rollout_steps, dt, epochs, lr, batch_size,
+                        hidden, layers, device, grad_clip):
+    """Train Neural ODE via k-step Euler rollout loss (MSE on state at t+k)."""
+    import torch
+    import torch.nn as nn
+    from torch.utils.data import TensorDataset, DataLoader
+
+    model = ODEFunc(hidden=hidden, layers=layers).to(device)
+    opt   = torch.optim.Adam(model.parameters(), lr=lr)
+    sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=epochs)
+
+    ds = TensorDataset(
+        torch.tensor(states_0).to(device),
+        torch.tensor(states_k).to(device),
+        torch.tensor(params).to(device),
+    )
+    loader = DataLoader(ds, batch_size=batch_size, shuffle=True, drop_last=False)
+    dt_t = torch.tensor(dt, dtype=torch.float32, device=device)
+
+    for epoch in range(1, epochs + 1):
+        total_loss = 0.0
+        for s0_b, sk_b, p_b in loader:
+            s = s0_b
+            for _ in range(rollout_steps):
+                s = s + dt_t * model(s, p_b)
+            loss = nn.functional.mse_loss(s, sk_b)
+            opt.zero_grad()
+            loss.backward()
+            if grad_clip > 0:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
+            opt.step()
+            total_loss += loss.item() * len(s0_b)
+        sched.step()
+        if epoch % 50 == 0 or epoch == 1:
+            print(f"  [NODE-rollout] epoch {epoch:4d}/{epochs}  loss={total_loss/len(states_0):.6f}")
 
     return model
 
@@ -265,6 +346,12 @@ def main():
                     help="Which models to train (subset of: neural_ode hnn lnn)")
     ap.add_argument("--max-samples", type=int, default=None,
                     help="Subsample training data to this many rows (useful for slow models like LNN)")
+    ap.add_argument("--rollout-steps", type=int, default=0,
+                    help="Euler rollout steps for Neural ODE (0 = derivative matching, default)")
+    ap.add_argument("--rollout-dt",    type=float, default=0.01,
+                    help="Timestep for rollout integration (default 0.01s)")
+    ap.add_argument("--grad-clip",     type=float, default=1.0,
+                    help="Gradient clipping max norm for rollout training (0 = disabled)")
     args = ap.parse_args()
 
     try:
@@ -298,9 +385,30 @@ def main():
     )
 
     if "neural_ode" in args.models:
-        print("\nTraining Neural ODE …")
-        model = _train_node(states, derivs, params, **train_kw)
-        out = os.path.join(args.output_dir, "neural_ode.pt")
+        if args.rollout_steps > 0:
+            print(f"\nTraining Neural ODE (rollout, k={args.rollout_steps}, dt={args.rollout_dt}) …")
+            print("  Building rollout training samples …")
+            t0 = time.perf_counter()
+            states_0, states_k, params_r = build_rollout_samples(
+                args.dataset_dir, args.rollout_steps)
+            print(f"  {len(states_0):,} rollout windows in {time.perf_counter()-t0:.1f}s")
+            if args.max_samples is not None and args.max_samples < len(states_0):
+                rng = np.random.default_rng(42)
+                idx = rng.choice(len(states_0), size=args.max_samples, replace=False)
+                states_0, states_k, params_r = states_0[idx], states_k[idx], params_r[idx]
+                print(f"  Subsampled to {len(states_0):,} samples")
+            model = _train_node_rollout(
+                states_0, states_k, params_r,
+                rollout_steps=args.rollout_steps,
+                dt=args.rollout_dt,
+                grad_clip=args.grad_clip,
+                **train_kw,
+            )
+            out = os.path.join(args.output_dir, "neural_ode_rollout.pt")
+        else:
+            print("\nTraining Neural ODE …")
+            model = _train_node(states, derivs, params, **train_kw)
+            out = os.path.join(args.output_dir, "neural_ode.pt")
         torch.save(model.state_dict(), out)
         print(f"  Saved → {out}")
 

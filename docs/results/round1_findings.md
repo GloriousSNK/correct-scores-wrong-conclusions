@@ -279,17 +279,49 @@ The best-of-N merged checkpoints are in `results/checkpoints_bon/merged/`. The m
 
 ---
 
+---
+
+## Post-Round 1 Session 3 — June 19, 2026
+
+Rollout loss training for Neural ODE. Free (local MPS), ~45 min.
+
+### Neural ODE rollout loss (k=10 Euler steps, 500 epochs)
+
+**Hypothesis:** derivative MSE optimises instantaneous accuracy but not trajectory stability. Training on k-step rollout error should directly improve long-horizon predictions.
+
+**Implementation:** instead of (state_t, d_state/dt) pairs, build (state_t, state_{t+10}) windows. Unroll 10 Euler steps through the model and penalise MSE at the endpoint. Gradients flow back through all 10 steps. Gradient clipping (max norm 1.0) for stability.
+
+Loss converged from 0.489 → 0.000081 in 500 epochs — tighter than derivative matching ever achieved.
+
+**Results:**
+
+| Horizon | Deriv MSE (1000 ep) | Rollout k=10 (500 ep) | Change |
+|---------|--------------------|-----------------------|--------|
+| 0.01 s | 0.0011 | **0.0008** | −27% |
+| 1 s | 0.077 | **0.052** | −32% |
+| 10 s | 1.253 | **0.660** | −47% |
+| 60 s | 1.533 | **1.087** | −29% |
+| **Overall mean** | 0.716 | **0.450** | **−37%** |
+
+The hypothesis was confirmed. Rollout loss improved every horizon, with the largest gain at 10s (−47%). The long-horizon degradation from session 2 is fully reversed — the rollout model (0.450) now sits just above Euler (0.455) in the leaderboard, and well above the derivative-matching Neural ODE (0.716).
+
+The key insight: **what you train on is what you get.** Derivative MSE teaches the model to predict instantaneous dynamics accurately; rollout loss teaches it to produce stable trajectories. Both train the same architecture — only the objective differs.
+
+Weights saved as `results/learned_models/neural_ode_rollout.pt`.
+
+---
+
 ## What's Next
 
 **Next round:**
-- Add gpt-5.5 and qwen3-vl-32b (deferred this round — require AWS infrastructure)
-- Add time-series models (Chronos, TimesFM, Moirai) — treat trajectories as sequences with no physics assumptions
-- Retrain LNN properly: either pre-compute mass matrix targets to avoid second-order autograd, or use a server with enough CPU cores
+- Add gpt-5.5 and qwen3-vl-32b (deferred — require AWS infrastructure)
+- Add time-series models (Chronos, TimesFM, Moirai)
+- Retrain LNN properly: pre-compute mass matrix targets to avoid second-order autograd
 
 **Longer term:**
 - Predict full trajectories, not just endpoint state — compute divergence time as the primary metric
 - Add perturbation experiments — how sensitive are LLM predictions to small changes in initial conditions?
-- Investigate Neural ODE long-horizon degradation: try trajectory-rollout loss instead of derivative MSE
+- Extend rollout loss to HNN — same objective change should help HNN's long-horizon performance
 
 ---
 

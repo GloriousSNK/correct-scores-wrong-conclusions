@@ -118,6 +118,10 @@ models:
     kind: learned
     variant: neural_ode
     checkpoint: results/learned_models/neural_ode.pt
+  - name: neural-ode-rollout
+    kind: learned
+    variant: neural_ode
+    checkpoint: results/learned_models/neural_ode_rollout.pt
   - name: hnn
     kind: learned
     variant: hnn
