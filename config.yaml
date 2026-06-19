@@ -126,6 +126,10 @@ models:
     kind: learned
     variant: hnn
     checkpoint: results/learned_models/hnn.pt
+  - name: hnn-rollout
+    kind: learned
+    variant: hnn
+    checkpoint: results/learned_models/hnn_rollout.pt
   - name: lnn
     kind: learned
     variant: lnn

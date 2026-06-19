@@ -311,6 +311,26 @@ Weights saved as `results/learned_models/neural_ode_rollout.pt`.
 
 ---
 
+---
+
+## Post-Round 1 Session 4 — June 19, 2026
+
+HNN rollout loss (k=5, 500 epochs). Free, ~50 min.
+
+| Horizon | Deriv MSE (1000 ep) | Rollout k=5 (500 ep) | Change |
+|---------|--------------------|-----------------------|--------|
+| 0.01 s | 0.003 | **0.002** | −31% |
+| 1 s | 0.358 | **0.257** | −28% |
+| 10 s | 1.184 | 1.200 | flat |
+| 60 s | 1.318 | **1.049** | −20% |
+| **Overall mean** | 0.716 | **0.627** | **−12%** |
+
+Rollout loss helped at every horizon except 10s (flat). HNN-rollout (0.627) now sits just above grok (0.651) — a learned model trained in under an hour beats the most reliable frontier LLM. The 10s plateau is likely because k=5 (covering 0.05s) doesn't yet teach medium-horizon stability directly; extending to k=20 or k=50 may address this.
+
+Weights saved as `results/learned_models/hnn_rollout.pt`.
+
+---
+
 ## What's Next
 
 **Next round:**
@@ -321,7 +341,7 @@ Weights saved as `results/learned_models/neural_ode_rollout.pt`.
 **Longer term:**
 - Predict full trajectories, not just endpoint state — compute divergence time as the primary metric
 - Add perturbation experiments — how sensitive are LLM predictions to small changes in initial conditions?
-- Extend rollout loss to HNN — same objective change should help HNN's long-horizon performance
+- Extend HNN rollout to k=20+ — the 10s plateau suggests k=5 is too short for medium-horizon gains
 
 ---
 

@@ -31,7 +31,8 @@ Each cell is averaged over 20 trajectories. The primary metric is **mean angle e
 | deepseek-v4-pro | LLM | coords, images, images_coords | Azure AI Foundry; images fixed post-patch (was vision: false) |
 | neural-ode | Learned | coords | Derivative MSE, 1000 epochs, MPS |
 | neural-ode-rollout | Learned | coords | Rollout loss k=10, 500 epochs, MPS — best learned model |
-| hnn | Learned | coords | Hamiltonian Neural Network, 1000 epochs, MPS (retrained from 500) |
+| hnn | Learned | coords | Hamiltonian Neural Network, derivative MSE, 1000 epochs, MPS |
+| hnn-rollout | Learned | coords | HNN rollout loss k=5, 500 epochs, MPS |
 | lnn | Learned | coords | Lagrangian Neural Network; trained on 8K subsampled data, 200 epochs, 64-hidden/2-layer due to CPU cost of second-order autograd |
 | euler | Numerical | coords | Fixed-step Euler, dt=0.01 |
 | rk4 | Numerical | coords | Runge-Kutta 4th order, dt=0.01 |
@@ -55,10 +56,11 @@ Ranked by mean angle error (rad) across all cells where a prediction was produce
 | 3 | kimi-k2.6 | 0.370 | 94.4%* |
 | 4 | neural-ode-rollout | 0.450 | 100% |
 | 5 | euler | 0.455 | 100% |
-| 6 | grok-4-1-fast-reasoning | 0.651 | 75.0% |
-| 7 | hnn | 0.716 | 100% |
-| 8 | neural-ode | 0.716 | 100% |
-| 9 | deepseek-v4-pro | 0.803 | 99.5% |
+| 6 | hnn-rollout | 0.627 | 100% |
+| 7 | grok-4-1-fast-reasoning | 0.651 | 75.0% |
+| 8 | hnn | 0.716 | 100% |
+| 9 | neural-ode | 0.716 | 100% |
+| 10 | deepseek-v4-pro | 0.803 | 99.5% |
 | 9 | lnn | 1.300 | 100% |
 
 ---

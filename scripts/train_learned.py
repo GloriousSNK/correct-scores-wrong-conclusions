@@ -261,6 +261,58 @@ def _train_hnn(states, derivs, params, *, epochs, lr, batch_size, hidden, layers
     return model
 
 
+def _train_hnn_rollout(states_0, states_k, params, *,
+                       rollout_steps, dt, epochs, lr, batch_size,
+                       hidden, layers, device, grad_clip):
+    """
+    Train HNN via k-step Euler rollout loss.
+
+    Each integration step derives ds/dt from Hamilton's equations via autograd
+    through H, so create_graph=True is required at every step to keep gradients
+    flowing back to model parameters. This is more expensive than NODE rollout
+    but is the correct way to train an HNN end-to-end on trajectory error.
+    Uses a smaller default batch size than NODE rollout due to the deeper graph.
+    """
+    import torch
+    import torch.nn as nn
+    from torch.utils.data import TensorDataset, DataLoader
+
+    model = HamiltonianNet(hidden=hidden, layers=layers).to(device)
+    opt   = torch.optim.Adam(model.parameters(), lr=lr)
+    sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=epochs)
+
+    ds = TensorDataset(
+        torch.tensor(states_0).to(device),
+        torch.tensor(states_k).to(device),
+        torch.tensor(params).to(device),
+    )
+    loader = DataLoader(ds, batch_size=batch_size, shuffle=True, drop_last=False)
+    dt_t = torch.tensor(dt, dtype=torch.float32, device=device)
+
+    for epoch in range(1, epochs + 1):
+        total_loss = 0.0
+        for s0_b, sk_b, p_b in loader:
+            # Detach from data loader graph; leaf tensor with grad for inner autograd
+            s = s0_b.detach().requires_grad_(True)
+            for _ in range(rollout_steps):
+                H    = model(s, p_b)
+                dH   = torch.autograd.grad(H.sum(), s, create_graph=True)[0]
+                dsdt = torch.cat([dH[:, 3:], -dH[:, :3]], dim=1)
+                s    = s + dt_t * dsdt   # non-leaf; retains grad for next step
+            loss = nn.functional.mse_loss(s, sk_b)
+            opt.zero_grad()
+            loss.backward()
+            if grad_clip > 0:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
+            opt.step()
+            total_loss += loss.item() * len(s0_b)
+        sched.step()
+        if epoch % 50 == 0 or epoch == 1:
+            print(f"  [HNN-rollout] epoch {epoch:4d}/{epochs}  loss={total_loss/len(states_0):.6f}")
+
+    return model
+
+
 def _lnn_loss(model, s_b, d_b, p_b):
     """
     LNN loss: Euler-Lagrange equations must reproduce observed (qdot, qddot).
@@ -413,9 +465,32 @@ def main():
         print(f"  Saved → {out}")
 
     if "hnn" in args.models:
-        print("\nTraining HNN …")
-        model = _train_hnn(states, derivs, params, **train_kw)
-        out = os.path.join(args.output_dir, "hnn.pt")
+        if args.rollout_steps > 0:
+            print(f"\nTraining HNN (rollout, k={args.rollout_steps}, dt={args.rollout_dt}) …")
+            if "states_0" not in dir():
+                print("  Building rollout training samples …")
+                t0 = time.perf_counter()
+                states_0, states_k, params_r = build_rollout_samples(
+                    args.dataset_dir, args.rollout_steps)
+                print(f"  {len(states_0):,} rollout windows in {time.perf_counter()-t0:.1f}s")
+                if args.max_samples is not None and args.max_samples < len(states_0):
+                    rng = np.random.default_rng(42)
+                    idx = rng.choice(len(states_0), size=args.max_samples, replace=False)
+                    states_0, states_k, params_r = states_0[idx], states_k[idx], params_r[idx]
+            # HNN rollout graph is deep — halve batch size to avoid OOM
+            hnn_kw = {**train_kw, "batch_size": train_kw["batch_size"] // 2}
+            model = _train_hnn_rollout(
+                states_0, states_k, params_r,
+                rollout_steps=args.rollout_steps,
+                dt=args.rollout_dt,
+                grad_clip=args.grad_clip,
+                **hnn_kw,
+            )
+            out = os.path.join(args.output_dir, "hnn_rollout.pt")
+        else:
+            print("\nTraining HNN …")
+            model = _train_hnn(states, derivs, params, **train_kw)
+            out = os.path.join(args.output_dir, "hnn.pt")
         torch.save(model.state_dict(), out)
         print(f"  Saved → {out}")
 
