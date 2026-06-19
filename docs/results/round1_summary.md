@@ -27,14 +27,16 @@ Each cell is averaged over 20 trajectories. The primary metric is **mean angle e
 | Model | Kind | Modalities | Notes |
 |-------|------|-----------|-------|
 | grok-4-1-fast-reasoning | LLM | coords, images, images_coords | Azure AI Foundry |
-| kimi-k2.6 | LLM | coords only | Azure AI Foundry; 88.9% coords success after patch (was 7.4%) |
+| kimi-k2.6 | LLM | coords only | Azure AI Foundry; 94.4% coords success with best-of-5 (was 7.4% orig, 88.9% after token fix) |
 | deepseek-v4-pro | LLM | coords, images, images_coords | Azure AI Foundry; images fixed post-patch (was vision: false) |
-| neural-ode | Learned | coords | Trained on full dataset (~67K samples), 500 epochs, MPS |
-| hnn | Learned | coords | Hamiltonian Neural Network, same training setup |
+| neural-ode | Learned | coords | Trained on full dataset (~67K samples), 1000 epochs, MPS (retrained from 500) |
+| hnn | Learned | coords | Hamiltonian Neural Network, 1000 epochs, MPS (retrained from 500) |
 | lnn | Learned | coords | Lagrangian Neural Network; trained on 8K subsampled data, 200 epochs, 64-hidden/2-layer due to CPU cost of second-order autograd |
 | euler | Numerical | coords | Fixed-step Euler, dt=0.01 |
 | rk4 | Numerical | coords | Runge-Kutta 4th order, dt=0.01 |
 | symplectic | Numerical | coords | Störmer-Verlet leapfrog, dt=0.01 |
+
+*kimi success rate is for coords modality only (best-of-5 sampling); includes all modalities it is 31.5%.
 
 **Deferred to next round:** gpt-5.5 (requires AWS), qwen3-vl-32b (requires AWS Bedrock)  
 **Dropped:** llama-4-maverick — sustained 429 rate-limit errors mid-run on Azure AI Foundry; 61/180 cells failed systematically; partial results unusable.
@@ -49,12 +51,12 @@ Ranked by mean angle error (rad) across all cells where a prediction was produce
 |------|-------|-------------------|-------------|
 | 1 | rk4 | 0.119 | 100% |
 | 2 | symplectic | 0.253 | 100% |
-| 3 | kimi-k2.6 | 0.287 | 7.4% |
+| 3 | kimi-k2.6 | 0.370 | 94.4%* |
 | 4 | euler | 0.455 | 100% |
-| 5 | neural-ode | 0.588 | 100% |
+| 5 | neural-ode | 0.716 | 100% |
 | 6 | grok-4-1-fast-reasoning | 0.651 | 75.0% |
-| 7 | hnn | 0.733 | 100% |
-| 8 | deepseek-v4-pro | 0.759 | 32.9% |
+| 7 | hnn | 0.716 | 100% |
+| 8 | deepseek-v4-pro | 0.803 | 99.5% |
 | 9 | lnn | 1.300 | 100% |
 
 ---

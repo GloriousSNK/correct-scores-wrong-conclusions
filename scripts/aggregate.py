@@ -25,12 +25,16 @@ def flatten_metrics(m: dict) -> dict:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", default="config.yaml")
+    ap.add_argument("--checkpoint-dir", default=None,
+                    help="override checkpoints_dir from config")
+    ap.add_argument("--summary-dir", default=None,
+                    help="override summary_dir from config")
     args = ap.parse_args()
     with open(args.config, "r", encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
 
-    ckpt_dir = cfg["paths"]["checkpoints_dir"]
-    summary_dir = cfg["paths"]["summary_dir"]
+    ckpt_dir = args.checkpoint_dir or cfg["paths"]["checkpoints_dir"]
+    summary_dir = args.summary_dir or cfg["paths"]["summary_dir"]
     os.makedirs(summary_dir, exist_ok=True)
 
     rows = []

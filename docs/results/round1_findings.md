@@ -220,18 +220,76 @@ DeepSeek with visual input is slightly worse than coords-only (0.759 rad) — im
 
 ---
 
+## Post-Round 1 Session 2 — June 18–19, 2026
+
+Two further improvements: longer training for learned models and best-of-N sampling for kimi. (~$26 API cost, ~6h wall time.)
+
+### Longer training: Neural ODE and HNN (500 → 1000 epochs)
+
+Training loss at convergence:
+
+| Model | Loss @ 500 ep | Loss @ 1000 ep | Reduction |
+|-------|--------------|----------------|-----------|
+| Neural ODE | 0.639 | 0.012 | 52× |
+| HNN | 4.463 | 0.215 | 21× |
+
+Cosine annealing enabled dramatic convergence in the second half of training. Results:
+
+**HNN — clean improvement:**
+
+| Horizon | Original | 1000 ep |
+|---------|----------|---------|
+| 0.01 s | 0.004 | **0.003** |
+| 1 s | 0.519 | **0.358** |
+| 10 s | 1.099 | 1.184 |
+| 60 s | 1.312 | 1.318 |
+| Overall mean | 0.733 | **0.716** |
+
+**Neural ODE — mixed:**
+
+| Horizon | Original | 1000 ep |
+|---------|----------|---------|
+| 0.01 s | 0.002 | **0.001** |
+| 1 s | 0.090 | **0.077** |
+| 10 s | 1.044 | 1.253 |
+| 60 s | 1.215 | 1.533 |
+| Overall mean | 0.588 | 0.716 |
+| Overall median | 0.119 | **0.083** |
+
+Neural ODE improved at short horizons (1s: 0.090→0.077) but degraded at long ones (60s: 1.215→1.533). This reveals a fundamental limitation: derivative-matching MSE does not optimise for trajectory integration stability. The model learns to predict instantaneous dynamics more accurately, but error accumulation over long rollouts worsened. **More training ≠ better long-horizon prediction for this objective.** The median improved because it captures short-to-medium horizon performance where the gains are real.
+
+Both retrained weights are in `results/learned_models/`.
+
+### Best-of-N sampling for kimi (N=5)
+
+Five independent kimi-k2.6 runs on the coords cells. For each cell, the median prediction across successful runs was taken. Metrics recomputed against the true trajectory state.
+
+| Metric | Single run | Best-of-5 | Change |
+|--------|-----------|-----------|--------|
+| Success rate (coords) | 88.9% | **94.4%** | +5.5 pp |
+| Angle error — mean | 0.447 rad | **0.370 rad** | −17% |
+| Angle error — median | 0.033 rad | 0.033 rad | flat |
+| 1s horizon mean | 0.624 | **0.422** | −32% |
+| 10s horizon mean | 0.721 | **0.544** | −25% |
+| 60s horizon mean | 0.436 | 0.547 | +25% worse |
+
+Best-of-5 delivers meaningful gains at the 1s and 10s horizons — where kimi can actually reason about physics — and recovers 4 cells that failed in the single run. The 60s degradation is expected: at deep chaotic timescales, taking the median of 5 uncorrelated random predictions adds noise rather than signal. The median error across all horizons is unchanged because it is dominated by 0.01s cells where all runs are near-perfect.
+
+The best-of-N merged checkpoints are in `results/checkpoints_bon/merged/`. The main `results/checkpoints/` uses the N=5 results as the canonical kimi evaluation.
+
+---
+
 ## What's Next
 
 **Next round:**
 - Add gpt-5.5 and qwen3-vl-32b (deferred this round — require AWS infrastructure)
 - Add time-series models (Chronos, TimesFM, Moirai) — treat trajectories as sequences with no physics assumptions
 - Retrain LNN properly: either pre-compute mass matrix targets to avoid second-order autograd, or use a server with enough CPU cores
-- Train Neural ODE and HNN longer — 500 epochs was a starting point
 
 **Longer term:**
 - Predict full trajectories, not just endpoint state — compute divergence time as the primary metric
-- Best-of-N sampling for LLMs (sample k=5, take median) — a realistic deployment strategy that may dramatically close the reliability gap
 - Add perturbation experiments — how sensitive are LLM predictions to small changes in initial conditions?
+- Investigate Neural ODE long-horizon degradation: try trajectory-rollout loss instead of derivative MSE
 
 ---
 

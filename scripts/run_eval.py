@@ -207,7 +207,7 @@ async def _amain(args):
     params_fn = make_params_for_cell(cfg, trajectories)
     image_fn = make_image_renderer(cfg, cache={}, trajectories=trajectories)
 
-    ckpt_dir = cfg["paths"]["checkpoints_dir"]
+    ckpt_dir = args.checkpoint_dir or cfg["paths"]["checkpoints_dir"]
     results = await run_all(
         predictors=predictors, cells=cells, trajectories=trajectories,
         params_by_cell=params_fn, image_for=image_fn, ckpt_dir=ckpt_dir,
@@ -231,6 +231,8 @@ def main():
                     help="restrict to these model names (default: all in config)")
     ap.add_argument("--smoke", action="store_true",
                     help="tiny run for smoke testing")
+    ap.add_argument("--checkpoint-dir", default=None,
+                    help="override checkpoints_dir from config (useful for best-of-N sampling)")
     args = ap.parse_args()
     asyncio.run(_amain(args))
 
