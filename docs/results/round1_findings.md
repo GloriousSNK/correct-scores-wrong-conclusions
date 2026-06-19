@@ -331,6 +331,43 @@ Weights saved as `results/learned_models/hnn_rollout.pt`.
 
 ---
 
+---
+
+## Post-Round 1 Session 5 — June 19, 2026
+
+Longer rollout windows: Neural ODE k=50 and HNN k=20. Free, ~2h total.
+
+### Neural ODE rollout k=50 (500 epochs)
+
+Training on 0.5s windows (50 × 0.01s) vs 0.1s (k=10):
+
+| Horizon | k=10 | k=50 | Change |
+|---------|------|------|--------|
+| 0.01 s | 0.0008 | 0.0040 | slight regression |
+| 1 s | 0.052 | 0.076 | slight regression |
+| 10 s | 0.660 | 0.688 | flat |
+| 60 s | 1.087 | **0.463** | **−57%** |
+| **Mean** | 0.450 | **0.308** | **−32%** |
+
+The 60s horizon improvement is dramatic. Training on longer windows teaches the model to maintain stable trajectories, and this generalises far beyond the training horizon. Neural-ODE-rollout at 0.308 now ranks 3rd overall — above kimi best-of-5 (0.370) and all LLMs.
+
+### HNN rollout k=20 (500 epochs)
+
+Training on 0.2s windows vs 0.05s (k=5):
+
+| Horizon | k=5 | k=20 | Change |
+|---------|-----|------|--------|
+| 1 s | 0.257 | **0.210** | −18% |
+| 10 s | 1.200 | **0.963** | −20% |
+| 60 s | 1.049 | **0.991** | −6% |
+| **Mean** | 0.627 | **0.542** | **−14%** |
+
+k=20 addresses the 10s plateau from k=5. The pattern holds: longer rollout windows improve medium and long-horizon predictions at the cost of marginal short-horizon regression.
+
+**Emerging pattern across both architectures:** rollout window length determines which horizons benefit. k=5 (0.05s) helps short-to-medium range; k=50 (0.5s) shifts gains to long horizons. There is likely an optimal k per architecture — but diminishing returns set in as longer windows make optimization harder (higher epoch-1 loss, slower convergence).
+
+---
+
 ## What's Next
 
 **Next round:**
@@ -341,7 +378,7 @@ Weights saved as `results/learned_models/hnn_rollout.pt`.
 **Longer term:**
 - Predict full trajectories, not just endpoint state — compute divergence time as the primary metric
 - Add perturbation experiments — how sensitive are LLM predictions to small changes in initial conditions?
-- Extend HNN rollout to k=20+ — the 10s plateau suggests k=5 is too short for medium-horizon gains
+- Mixed rollout loss: train with multiple k values simultaneously to optimise all horizons at once
 
 ---
 
