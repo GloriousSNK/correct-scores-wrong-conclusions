@@ -1,0 +1,48 @@
+# Boot config for STATISTICAL RIGOR of the learned + numerical models.
+# Re-evaluates them on the SAME 20-trajectory dataset (results/dataset_boot) the
+# Chronos-2 study used, so per-model CIs and cross-model paired tests are possible.
+# Writes to results/checkpoints_boot (additive; touches nothing existing).
+
+dataset:
+  systems: [1, 2, 3]
+  trajectories_per_cell: 20
+  ground_truth_dt: 0.001
+  total_seconds: 65
+  pre_context_seconds: 10.0
+  seed: 20260620
+
+regimes:
+  normal: {g: 9.81, L: [1.0], m: [1.0], damping: 0.0}
+  changed_disclosed: {g: 3.71, L: [1.4, 0.7, 1.1], m: [2.0, 0.6, 1.5], damping: 0.05}
+  changed_hidden: {g: 1.62, L: [0.8, 1.2, 0.9], m: [0.5, 1.8, 1.0], damping: 0.1}
+
+initial_conditions: {theta_low: -3.0, theta_high: 3.0, omega_low: -1.0, omega_high: 1.0}
+
+horizons_seconds: [0.01, 1.0, 10.0, 60.0]
+modalities: [coords]
+prompting: [no_cot]
+
+rendering: {image_size: [512, 512], background: "#0a0a0a", grid: true, show_trail: false}
+
+models:
+  - {name: euler, kind: numerical, method: euler, step: 0.01}
+  - {name: rk4, kind: numerical, method: rk4, step: 0.01}
+  - {name: symplectic, kind: numerical, method: leapfrog, step: 0.01}
+  - {name: neural-ode, kind: learned, variant: neural_ode, checkpoint: results/learned_models/neural_ode.pt}
+  - {name: neural-ode-rollout, kind: learned, variant: neural_ode, checkpoint: results/learned_models/neural_ode_rollout.pt}
+  - {name: neural-ode-rollout-mixed, kind: learned, variant: neural_ode, checkpoint: results/learned_models/neural_ode_rollout_mixed.pt}
+  - {name: hnn, kind: learned, variant: hnn, checkpoint: results/learned_models/hnn.pt}
+  - {name: hnn-rollout, kind: learned, variant: hnn, checkpoint: results/learned_models/hnn_rollout.pt}
+  - {name: hnn-rollout-mixed, kind: learned, variant: hnn, checkpoint: results/learned_models/hnn_rollout_mixed.pt}
+  - {name: lnn, kind: learned, variant: lnn, checkpoint: results/learned_models/lnn.pt, hidden: 256, layers: 3}
+
+paths:
+  results_dir: results
+  checkpoints_dir: results/checkpoints_boot
+  raw_dir: results/raw
+  summary_dir: results/summary_boot
+  dataset_dir: results/dataset_boot
+  renders_dir: results/renders
+  learned_models_dir: results/learned_models
+
+metrics: {divergence_threshold_rad: 0.5, divergence_threshold_xy: 0.5}

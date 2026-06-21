@@ -24,6 +24,7 @@ from bench.models.numerical import NumericalPredictor
 from bench.models.azure_llm import AzureFoundryPredictor
 from bench.models.nim_llm import NimPredictor
 from bench.models.timeseries import TimeSeriesPredictor
+from bench.models.ts_local import LocalTimeSeriesPredictor
 from bench.models.learned import NeuralODEPredictor, HNNPredictor, LNNPredictor, LearnedPredictor
 
 def load_trajectory(path: str) -> Trajectory:
@@ -98,6 +99,17 @@ def build_predictors(cfg: dict, only: set[str] | None = None) -> dict:
                 concurrency=int(mdef.get("concurrency", 4)),
                 request_timeout=float(azure_cfg.get("request_timeout", 120)),
                 max_retries=int(azure_cfg.get("max_retries", 4)),
+            )
+        elif kind == "ts_local":
+            preds[name] = LocalTimeSeriesPredictor(
+                name=name, variant=mdef.get("variant", ""),
+                model_id=mdef.get("model_id"),
+                device=str(mdef.get("device", "auto")),
+                dtype=str(mdef.get("dtype", "float32")),
+                max_prediction_length=int(mdef.get("max_prediction_length", 256)),
+                max_context_length=int(mdef.get("max_context_length", 512)),
+                num_samples=int(mdef.get("num_samples", 20)),
+                multivariate=bool(mdef.get("multivariate", False)),
             )
         elif kind == "learned":
             variant    = mdef.get("variant", "")

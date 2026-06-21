@@ -130,29 +130,77 @@ models:
     kind: learned
     variant: hnn
     checkpoint: results/learned_models/hnn_rollout.pt
+  # Mixed-k rollout models (trained on multiple window lengths at once; CUDA round 2)
+  - name: neural-ode-rollout-mixed
+    kind: learned
+    variant: neural_ode
+    checkpoint: results/learned_models/neural_ode_rollout_mixed.pt
+  - name: hnn-rollout-mixed
+    kind: learned
+    variant: hnn
+    checkpoint: results/learned_models/hnn_rollout_mixed.pt
+  # LNN retrained full-scale on CUDA (hidden=256/layers=3); MPS could not do its
+  # second-order autograd, so the Mac round used a crippled hidden=64 subset.
   - name: lnn
     kind: learned
     variant: lnn
     checkpoint: results/learned_models/lnn.pt
-    hidden: 64
-    layers: 2
+    hidden: 256
+    layers: 3
 
-  # Time-series models: disabled until Azure ML endpoints are deployed.
+  # Azure-hosted time-series models: disabled until Azure ML endpoints are deployed.
   # - name: chronos
   #   kind: timeseries
   #   variant: chronos
   #   max_prediction_length: 256
   #   concurrency: 4
-  # - name: timesfm
-  #   kind: timeseries
-  #   variant: timesfm
-  #   max_prediction_length: 256
-  #   concurrency: 4
-  # - name: moirai
-  #   kind: timeseries
+
+  # Local time-series foundation models (run on the local GPU, no Azure).
+  #   chronos -> pip install chronos-forecasting
+  #   timesfm -> pip install timesfm
+  #   moirai  -> pip install uni2ts
+  - name: chronos-local
+    kind: ts_local
+    variant: chronos
+    model_id: amazon/chronos-t5-large
+    device: auto
+    dtype: float32
+    max_prediction_length: 256
+    max_context_length: 512
+    num_samples: 10
+  # Chronos-2: supports univariate and multivariate; run both for a uni-vs-multi study.
+  - name: chronos2-uni
+    kind: ts_local
+    variant: chronos2
+    model_id: amazon/chronos-2
+    multivariate: false
+    max_prediction_length: 256
+    max_context_length: 512
+  - name: chronos2-multi
+    kind: ts_local
+    variant: chronos2
+    model_id: amazon/chronos-2
+    multivariate: true
+    max_prediction_length: 256
+    max_context_length: 512
+  # Moirai (uni2ts) is blocked on Python 3.13 (hard numpy~=1.26 / scipy~=1.11 pins,
+  # no cp313 wheels). Run it from a separate Python 3.11 venv if needed.
+  # - name: moirai-uni
+  #   kind: ts_local
   #   variant: moirai
-  #   max_prediction_length: 256
-  #   concurrency: 4
+  #   multivariate: false
+  # - name: moirai-multi
+  #   kind: ts_local
+  #   variant: moirai
+  #   multivariate: true
+  # - name: timesfm-local
+  #   kind: ts_local
+  #   variant: timesfm
+  #   model_id: google/timesfm-1.0-200m
+  # - name: moirai-local
+  #   kind: ts_local
+  #   variant: moirai
+  #   model_id: Salesforce/moirai-1.0-R-large
 
 paths:
   results_dir: results

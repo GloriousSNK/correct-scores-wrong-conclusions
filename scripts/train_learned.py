@@ -380,6 +380,109 @@ def _train_lnn(states, derivs, params, *, epochs, lr, batch_size, hidden, layers
     return model
 
 
+# ── Mixed-k rollout training ──────────────────────────────────────────────────
+
+def _build_rollout_by_k(dataset_dir: str, ks: list[int], max_samples):
+    """Build rollout (states_0, states_k, params) windows for several k values."""
+    by_k = {}
+    for k in ks:
+        s0, sk, p = build_rollout_samples(dataset_dir, k)
+        if max_samples is not None and max_samples < len(s0):
+            rng = np.random.default_rng(42)
+            idx = rng.choice(len(s0), size=max_samples, replace=False)
+            s0, sk, p = s0[idx], sk[idx], p[idx]
+        by_k[k] = (s0, sk, p)
+        print(f"  k={k}: {len(s0):,} rollout windows")
+    return by_k
+
+
+def _train_node_rollout_mixed(by_k, *, ks, dt, epochs, lr, batch_size,
+                              hidden, layers, device, grad_clip):
+    """Neural ODE trained on several rollout-window lengths simultaneously.
+
+    Each epoch iterates every k's loader, unrolling that many Euler steps, so the
+    model is optimised for short, medium, and long horizons at once rather than a
+    single window length.
+    """
+    import torch
+    import torch.nn as nn
+    from torch.utils.data import TensorDataset, DataLoader
+
+    model = ODEFunc(hidden=hidden, layers=layers).to(device)
+    opt   = torch.optim.Adam(model.parameters(), lr=lr)
+    sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=epochs)
+    dt_t  = torch.tensor(dt, dtype=torch.float32, device=device)
+
+    loaders = {}
+    for k, (s0, sk, p) in by_k.items():
+        ds = TensorDataset(torch.tensor(s0).to(device),
+                           torch.tensor(sk).to(device),
+                           torch.tensor(p).to(device))
+        loaders[k] = DataLoader(ds, batch_size=batch_size, shuffle=True, drop_last=False)
+
+    for epoch in range(1, epochs + 1):
+        total_loss = 0.0; n = 0
+        for k in ks:
+            for s0_b, sk_b, p_b in loaders[k]:
+                s = s0_b
+                for _ in range(k):
+                    s = s + dt_t * model(s, p_b)
+                loss = nn.functional.mse_loss(s, sk_b)
+                opt.zero_grad(); loss.backward()
+                if grad_clip > 0:
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
+                opt.step()
+                total_loss += loss.item() * len(s0_b); n += len(s0_b)
+        sched.step()
+        if epoch % 50 == 0 or epoch == 1:
+            print(f"  [NODE-mixed] epoch {epoch:4d}/{epochs}  loss={total_loss/n:.6f}")
+
+    return model
+
+
+def _train_hnn_rollout_mixed(by_k, *, ks, dt, epochs, lr, batch_size,
+                             hidden, layers, device, grad_clip):
+    """HNN trained on several rollout-window lengths simultaneously (Hamilton's
+    equations via autograd at every step)."""
+    import torch
+    import torch.nn as nn
+    from torch.utils.data import TensorDataset, DataLoader
+
+    model = HamiltonianNet(hidden=hidden, layers=layers).to(device)
+    opt   = torch.optim.Adam(model.parameters(), lr=lr)
+    sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=epochs)
+    dt_t  = torch.tensor(dt, dtype=torch.float32, device=device)
+
+    loaders = {}
+    for k, (s0, sk, p) in by_k.items():
+        ds = TensorDataset(torch.tensor(s0).to(device),
+                           torch.tensor(sk).to(device),
+                           torch.tensor(p).to(device))
+        loaders[k] = DataLoader(ds, batch_size=batch_size, shuffle=True, drop_last=False)
+
+    for epoch in range(1, epochs + 1):
+        total_loss = 0.0; n = 0
+        for k in ks:
+            for s0_b, sk_b, p_b in loaders[k]:
+                s = s0_b.detach().requires_grad_(True)
+                for _ in range(k):
+                    H    = model(s, p_b)
+                    dH   = torch.autograd.grad(H.sum(), s, create_graph=True)[0]
+                    dsdt = torch.cat([dH[:, 3:], -dH[:, :3]], dim=1)
+                    s    = s + dt_t * dsdt
+                loss = nn.functional.mse_loss(s, sk_b)
+                opt.zero_grad(); loss.backward()
+                if grad_clip > 0:
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
+                opt.step()
+                total_loss += loss.item() * len(s0_b); n += len(s0_b)
+        sched.step()
+        if epoch % 50 == 0 or epoch == 1:
+            print(f"  [HNN-mixed] epoch {epoch:4d}/{epochs}  loss={total_loss/n:.6f}")
+
+    return model
+
+
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 def main():
@@ -404,6 +507,10 @@ def main():
                     help="Timestep for rollout integration (default 0.01s)")
     ap.add_argument("--grad-clip",     type=float, default=1.0,
                     help="Gradient clipping max norm for rollout training (0 = disabled)")
+    ap.add_argument("--rollout-ks",    type=int, nargs="*", default=None,
+                    help="Mixed-k rollout training: optimise several window lengths at "
+                         "once, e.g. --rollout-ks 10 50. Overrides --rollout-steps; "
+                         "saves to *_rollout_mixed.pt. (neural_ode / hnn only)")
     args = ap.parse_args()
 
     try:
@@ -436,8 +543,20 @@ def main():
         hidden=args.hidden, layers=args.layers, device=device,
     )
 
+    mixed = args.rollout_ks is not None and len(args.rollout_ks) > 0
+    by_k = None
+    if mixed:
+        print(f"\nBuilding mixed-k rollout samples for k={args.rollout_ks} …")
+        by_k = _build_rollout_by_k(args.dataset_dir, args.rollout_ks, args.max_samples)
+
     if "neural_ode" in args.models:
-        if args.rollout_steps > 0:
+        if mixed:
+            print(f"\nTraining Neural ODE (mixed rollout, ks={args.rollout_ks}) …")
+            model = _train_node_rollout_mixed(
+                by_k, ks=args.rollout_ks, dt=args.rollout_dt,
+                grad_clip=args.grad_clip, **train_kw)
+            out = os.path.join(args.output_dir, "neural_ode_rollout_mixed.pt")
+        elif args.rollout_steps > 0:
             print(f"\nTraining Neural ODE (rollout, k={args.rollout_steps}, dt={args.rollout_dt}) …")
             print("  Building rollout training samples …")
             t0 = time.perf_counter()
@@ -465,7 +584,15 @@ def main():
         print(f"  Saved → {out}")
 
     if "hnn" in args.models:
-        if args.rollout_steps > 0:
+        if mixed:
+            print(f"\nTraining HNN (mixed rollout, ks={args.rollout_ks}) …")
+            # HNN rollout graph is deep — halve batch size to avoid OOM
+            hnn_kw = {**train_kw, "batch_size": train_kw["batch_size"] // 2}
+            model = _train_hnn_rollout_mixed(
+                by_k, ks=args.rollout_ks, dt=args.rollout_dt,
+                grad_clip=args.grad_clip, **hnn_kw)
+            out = os.path.join(args.output_dir, "hnn_rollout_mixed.pt")
+        elif args.rollout_steps > 0:
             print(f"\nTraining HNN (rollout, k={args.rollout_steps}, dt={args.rollout_dt}) …")
             if "states_0" not in dir():
                 print("  Building rollout training samples …")

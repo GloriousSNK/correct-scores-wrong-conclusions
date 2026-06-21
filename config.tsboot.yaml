@@ -1,0 +1,74 @@
+# Config for the time-series univariate-vs-multivariate SIGNIFICANCE study.
+# Generates many trajectories per (k, regime) and evaluates Chronos-2 in both
+# modes on the SAME trajectories, enabling a paired statistical comparison.
+# Writes to dedicated *_boot paths so it never touches the main round-2 results.
+
+dataset:
+  systems: [1, 2, 3]
+  trajectories_per_cell: 20        # 20 paired samples per (k, regime, horizon)
+  ground_truth_dt: 0.001
+  total_seconds: 65
+  pre_context_seconds: 10.0
+  seed: 20260620                    # distinct seed -> independent trajectories
+
+regimes:
+  normal:
+    g: 9.81
+    L: [1.0]
+    m: [1.0]
+    damping: 0.0
+  changed_disclosed:
+    g: 3.71
+    L: [1.4, 0.7, 1.1]
+    m: [2.0, 0.6, 1.5]
+    damping: 0.05
+  changed_hidden:
+    g: 1.62
+    L: [0.8, 1.2, 0.9]
+    m: [0.5, 1.8, 1.0]
+    damping: 0.1
+
+initial_conditions:
+  theta_low: -3.0
+  theta_high: 3.0
+  omega_low: -1.0
+  omega_high: 1.0
+
+horizons_seconds: [0.01, 1.0, 10.0, 60.0]
+modalities: [coords]
+prompting: [no_cot]
+
+rendering:
+  image_size: [512, 512]
+  background: "#0a0a0a"
+  grid: true
+  show_trail: false
+
+models:
+  - name: chronos2-uni
+    kind: ts_local
+    variant: chronos2
+    model_id: amazon/chronos-2
+    multivariate: false
+    max_prediction_length: 64       # Chronos-recommended range; 4x faster than 256
+    max_context_length: 512
+  - name: chronos2-multi
+    kind: ts_local
+    variant: chronos2
+    model_id: amazon/chronos-2
+    multivariate: true
+    max_prediction_length: 64
+    max_context_length: 512
+
+paths:
+  results_dir: results
+  checkpoints_dir: results/checkpoints_tsboot
+  raw_dir: results/raw
+  summary_dir: results/summary_tsboot
+  dataset_dir: results/dataset_boot
+  renders_dir: results/renders
+  learned_models_dir: results/learned_models
+
+metrics:
+  divergence_threshold_rad: 0.5
+  divergence_threshold_xy: 0.5
