@@ -124,9 +124,8 @@ Trishant Srinivasan, Shrithik Shahapure.
 
 ```bibtex
 @inproceedings{kandi2026forecastingchaos,
-  title  = {Forecasting Chaos Across Model Families: A Controlled Benchmark of LLMs,
-            Time-Series Foundation Models, Learned Dynamics, and Numerical Integrators
-            on k-Pendulum Systems},
+  title  = {Forecasting Chaos Across Model Families: An Out-of-Sample,
+            Reliability-Adjusted Benchmark},
   author = {Kandi, Sriman Narayan and Srinivasan, Trishant and Shahapure, Shrithik},
   year   = {2026}
 }
