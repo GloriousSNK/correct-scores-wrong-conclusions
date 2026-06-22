@@ -1,8 +1,37 @@
-.env
-__pycache__/
-*.pyc
-/results/
+# --- Python environments (never commit; rebuild from requirements.txt) ---
+.venv-win/
 .venv/
 venv/
+__pycache__/
+*.pyc
+
+# --- Secrets & local agent/tool state ---
+.env
+.claude/
+.cache/
+
+# --- OS / archive junk ---
 .DS_Store
-/paper/
+__MACOSX/
+*.zip
+
+# --- Session/context artifacts (not part of the deliverable) ---
+HANDOVER.md
+docs/mac_llm_prompt_combined.md
+_incoming_mac/
+**/_repro_check/
+**/_smoke*/
+
+# --- Results: raw checkpoints/datasets are large and released as a GitHub
+#     Release tarball. Summaries, trained weights, and the held-out spec are
+#     force-added in the commit step (git add -f). ---
+/results/
+
+# --- LaTeX build artifacts ---
+*.aux
+*.bbl
+*.blg
+*.out
+*.synctex.gz
+*.fdb_latexmk
+*.fls
