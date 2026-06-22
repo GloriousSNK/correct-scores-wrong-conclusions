@@ -8,7 +8,7 @@ models** (Neural ODE, HNN, LNN), and **classical integrators** (Euler, RK4, symp
 — and, crucially, score every family on the **same out-of-sample held-out trajectories**.
 
 📄 **Paper:** [`paper/manuscripts/ChaosForecastingAcrossModelFamilies.pdf`](paper/manuscripts/ChaosForecastingAcrossModelFamilies.pdf)
-(NeurIPS workshop manuscript; LaTeX source in the same folder).
+(paper manuscript; LaTeX source in the same folder).
 
 ## Headline result (out-of-sample, reliability-adjusted)
 
