@@ -18,10 +18,19 @@
 % =====================================================================
 \documentclass{article}
 
-% --- NeurIPS style: prefer the official workshop .sty if present -------
-\IfFileExists{neurips_2025.sty}{\usepackage[final]{neurips_2025}}{%
-  \IfFileExists{neurips_2024.sty}{\usepackage[final]{neurips_2024}}{%
-    \usepackage[margin=1in]{geometry}\usepackage{parskip}\usepackage{natbib}}}
+% --- NeurIPS 2026 style. Currently set to PREPRINT (authors shown, with a
+%     "Preprint. Work in progress." footer). To switch:
+%       * anonymous submission  -> \usepackage{neurips_2026}            (adds line numbers, anonymises)
+%       * workshop submission    -> \usepackage[sglblindworkshop]{neurips_2026}  (single-blind)
+%                                or \usepackage[dblblindworkshop]{neurips_2026}  (double-blind)
+%                                   AND set \workshoptitle{...} below
+%       * camera-ready           -> add the "final" option, e.g. [sglblindworkshop, final]
+% -------------------------------------------------------------------------------
+\IfFileExists{neurips_2026.sty}{%
+  \usepackage[preprint]{neurips_2026}%
+}{%
+  \usepackage[margin=1in]{geometry}\usepackage{parskip}\usepackage{natbib}%
+}
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -40,12 +49,19 @@
 
 \title{Forecasting Chaos Across Model Families: An Out-of-Sample,
 Reliability-Adjusted Benchmark}
+% Required when using a workshop option (sgl/dblblindworkshop):
+% \workshoptitle{Name of the NeurIPS 2026 Workshop}
 
 \author{%
-  Sriman Narayan Kandi\thanks{Corresponding author: \texttt{kandisriman@gmail.com}},
-  Trishant Srinivasan,
-  Shrithik Shahapure\\
-  \textit{Independent Researchers}
+  Sriman Narayan Kandi\thanks{Corresponding author.} \\
+  Independent Researcher \\
+  \texttt{kandisriman@gmail.com} \\
+  \And
+  Trishant Srinivasan \\
+  Independent Researcher \\
+  \And
+  Shrithik Shahapure \\
+  Independent Researcher \\
 }
 
 \begin{document}
@@ -201,7 +217,7 @@ in-sample numbers---where the learned models were scored on their own training
 trajectories---are reported nowhere in this version; we quantify the size of that
 leak directly (\S\ref{sec:reliability}).
 
-\begin{table}[t]
+\begin{table}[tbp]
 \centering\small
 \caption{Physical regimes. \texttt{changed\_hidden} withholds the constants.}
 \label{tab:regimes}
@@ -240,12 +256,11 @@ given the exact equations and constants) and \textbf{black-box / data-driven} (L
 Chronos, learned dynamics). The known-physics methods are a ceiling by construction;
 the scientific question is which \emph{black-box} family forecasts best.
 
-\begin{table}[t]
+\begin{table}[tbp]
 \centering\small
 \caption{Inputs available to each model family. ``Constants'' $=(g,L,m,\text{damping})$.
 Only Chronos receives history; only the learned models receive the true constants even
-in the \texttt{hidden} regime --- both asymmetries favour the non-LLM models.}
-\label{tab:inputs}
+in the \texttt{hidden} regime --- both asymmetries favour the non-LLM models.} \label{tab:inputs}
 \begin{tabular}{lcccc}
 \toprule
 Family & State $t{=}0$ & History $t{<}0$ & Constants & Equations of motion \\
@@ -370,13 +385,12 @@ out-of-sample error is the single most important number in the paper: it means t
 widely-reported strength of small learned dynamics models on this benchmark was
 substantially an artefact of evaluating them on their own training data.
 
-\begin{table}[t]
+\begin{table}[tbp]
 \centering\small
 \caption{Out-of-sample leaderboard on the shared held-out set ($360$ cells,
 horizons $\{1,10\}$\,s). Reliability-adjusted mean angle error (rad): unanswered or
 missing cells scored at the random-guess baseline $\pi/2$; $95\%$ bootstrap CI.
-RK4 is the data-generating process, hence an oracle ceiling rather than a competitor. New in this work marked $\dagger$.}
-\label{tab:overall}
+RK4 is the data-generating process, hence an oracle ceiling rather than a competitor. New in this work marked $\dagger$.}\label{tab:overall}
 \begin{tabular}{rlcccl}
 \toprule
 \# & Model & Err & 95\% CI & Answered & Family \\
@@ -427,12 +441,11 @@ saturates near the chaotic noise floor almost immediately and is essentially fla
 $1$\,s onward---so the $\{1,10\}$\,s window used for the leaderboard is exactly where the
 families are still separable.
 
-\begin{table}[t]
+\begin{table}[tbp]
 \centering\small
 \caption{Out-of-sample mean angle error (rad) by horizon, reliability-adjusted, on
 the shared held-out grid (selected models). The cross-family comparison uses the
-discriminating horizons $\{1,10\}$\,s.}
-\label{tab:horizon}
+discriminating horizons $\{1,10\}$\,s.}\label{tab:horizon}
 \begin{tabular}{lcc}
 \toprule
 Model & 1\,s & 10\,s \\
@@ -454,7 +467,7 @@ lnn (full-scale) & 1.335 & 1.508 \\
 \end{tabular}
 \end{table}
 
-\begin{figure}[t]
+\begin{figure}[tbp]
 \centering
 \begin{tikzpicture}
 \begin{semilogxaxis}[
@@ -538,13 +551,12 @@ We do not claim LNNs are intrinsically weak; rather, \emph{under our implementat
 evaluation protocol} the LNN was numerically unstable and generalised poorly out of
 sample.
 
-\begin{table}[t]
+\begin{table}[tbp]
 \centering\small
 \caption{Training-objective study, out-of-sample mean angle error (rad) on the
 shared held-out grid (horizons $\{1,10\}$\,s); architecture fixed, only the
 loss/window changes. Significance from a dedicated powered paired study on the full
-four-horizon held-out set ($n{=}720$, Wilcoxon$+$Holm).}
-\label{tab:objective}
+four-horizon held-out set ($n{=}720$, Wilcoxon$+$Holm).}\label{tab:objective}
 \begin{tabular}{llcl}
 \toprule
 Model & Objective & Err & vs.\ prev.\ row \\
@@ -580,12 +592,11 @@ below $0.5$\,rad at $1$\,s except \texttt{kimi}. The sweep underlines the leader
 on held-out trajectories no data-driven model has a usable predictability horizon
 beyond what numerics already provide.
 
-\begin{table}[t]
+\begin{table}[tbp]
 \centering\small
 \caption{Predictability horizon (s): longest horizon tracked contiguously below
 threshold $\tau$, on the shared out-of-sample set (full ladder
-$\{0.01,1,10,60\}$\,s). Higher is better.}
-\label{tab:predhorizon}
+$\{0.01,1,10,60\}$\,s). Higher is better.}\label{tab:predhorizon}
 \begin{tabular}{lcccc}
 \toprule
 Model & $\tau{=}0.1$ & $0.25$ & $0.5$ & $1.0$ \\
@@ -642,13 +653,12 @@ evidence that any accuracy difference between regimes is \emph{caused} by in-con
 system identification; the earlier interpretation does not hold up once the confound
 is removed and the mechanism is probed directly.
 
-\begin{table}[t]
+\begin{table}[tbp]
 \centering\small
 \caption{Matched, confound-free system-identification gap (rad), paired on identical
 trajectories. $\Delta_{\mathrm{sysid}}=\mathrm{err}(\text{hidden})-
 \mathrm{err}(\text{disclosed})$; \emph{positive} means the model does \emph{worse}
-without being told the constants. Reliability-adjusted; paired Wilcoxon, Holm-corrected.}
-\label{tab:sysid}
+without being told the constants. Reliability-adjusted; paired Wilcoxon, Holm-corrected.}\label{tab:sysid}
 \begin{tabular}{lccc}
 \toprule
 Model & disclosed & hidden & $\Delta_{\mathrm{sysid}}$ \\
@@ -882,7 +892,7 @@ regime (Table~\ref{tab:perregime}); models in leaderboard order. Cells a model n
 produced (e.g.\ the LNN's diverged $k{=}3$) are scored at $\pi/2$, so each row is a mean
 over the same complete grid as Table~\ref{tab:overall}.
 
-\begin{table}[h]
+\begin{table}[tbp]
 \centering\small
 \caption{Out-of-sample error by number of links $k$.}
 \label{tab:perk}
@@ -909,7 +919,7 @@ lnn & 1.146 & 1.547 & 1.571 \\
 \end{tabular}
 \end{table}
 
-\begin{table}[h]
+\begin{table}[tbp]
 \centering\small
 \caption{Out-of-sample error by regime. \texttt{changed\_hidden} is the \emph{easiest}
 for almost every model---its low-gravity/short-rod constants give slower, less-divergent
