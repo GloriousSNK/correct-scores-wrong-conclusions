@@ -745,12 +745,15 @@ buried.
 
 \paragraph{Scope and generality.} Our quantitative rankings are specific to this substrate
 and horizon; we do not claim a particular \emph{model order} transfers unchanged to Lorenz,
-driven-pendulum, or fluid systems. What \emph{does} transfer is the methodology, because it
-is a property of the evaluation rather than of the pendulum: in-sample scoring of a fitted
-simulator is optimistic on \emph{any} system whose train and test trajectories overlap; the
+driven-pendulum, or fluid systems. What \emph{does} transfer is the evaluation
+\emph{protocol}---not the leaderboard it produces: in-sample scoring of a fitted simulator
+is optimistic on \emph{any} system whose train and test trajectories overlap; the
 reliability-adjusted metric and the matched, confound-free control for inferred-versus-disclosed
-parameters are system-agnostic; and the cross-family, out-of-sample leaderboard is a reusable
-protocol. The harness is substrate-parametrised (the dynamics enter only through the
+parameters are system-agnostic \emph{mechanisms}; and the cross-family, out-of-sample
+comparison is a reusable design. We nonetheless expect the resulting \emph{ranking} to be
+system-dependent---which models abstain or destabilise, and hence how the reliability
+adjustment reorders them, may differ on another substrate---so it is the protocol, not its
+outcome, that we claim transfers. The harness is substrate-parametrised (the dynamics enter only through the
 ground-truth integrator and the known equations of motion), so porting it to other chaotic
 systems is mechanical and is the natural next step---one we expect to change the numbers but
 not the methodological conclusions.
