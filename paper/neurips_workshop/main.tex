@@ -445,8 +445,9 @@ lnn (full-scale) & 1.335 & 1.508 \\
   xlabel={Prediction horizon $T$ (s)}, ylabel={Mean angle error (rad)},
   xmin=0.008, xmax=75, ymin=0, ymax=1.68,
   xtick={0.01,0.1,1,10,60}, log ticks with fixed point,
-  legend pos=south east,
-  legend style={font=\scriptsize, fill=white, fill opacity=0.9, draw=none, cells={anchor=west}},
+  legend columns=4,
+  legend style={at={(0.5,1.03)}, anchor=south, font=\scriptsize, draw=none, fill=none,
+                cells={anchor=west}, /tikz/every even column/.append style={column sep=6pt}},
   grid=both, grid style={gray!18}, tick align=outside,
   every axis plot/.append style={thick, mark size=1.5pt},
 ]
@@ -461,7 +462,7 @@ lnn (full-scale) & 1.335 & 1.508 \\
 \addplot+[mark=pentagon*] coordinates {(0.01,0.040) (1,0.591) (10,0.777) (60,0.764)};
 \addlegendentry{chronos-2}
 \addplot+[mark=o]         coordinates {(0.01,0.011) (1,0.790) (10,0.950) (60,0.736)};
-\addlegendentry{neural-ode (rollout)}
+\addlegendentry{neural-ode (roll.)}
 \addplot+[mark=x]         coordinates {(0.01,0.821) (1,1.335) (10,1.508) (60,1.492)};
 \addlegendentry{lnn}
 \draw[dashed, gray!70] (axis cs:0.008,1.5708) -- (axis cs:75,1.5708);
