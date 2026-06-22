@@ -1,0 +1,17 @@
+model,pred_horizon@0.1rad,pred_horizon@0.25rad,pred_horizon@0.5rad,pred_horizon@1.0rad
+rk4,1.0,1.0,60.0,60.0
+neural-ode-rollout-mixed,1.0,10.0,10.0,60.0
+hnn,0.01,0.01,1.0,1.0
+hnn-rollout,0.01,1.0,1.0,60.0
+kimi-k2.6,0.01,0.01,1.0,60.0
+hnn-rollout-mixed,0.01,1.0,1.0,10.0
+euler,1.0,1.0,1.0,60.0
+neural-ode-rollout,1.0,1.0,1.0,60.0
+symplectic,1.0,1.0,1.0,60.0
+neural-ode,1.0,1.0,1.0,1.0
+grok-4-1-fast-reasoning,0.0,0.0,0.01,60.0
+deepseek-v4-pro,0.0,0.0,0.01,0.01
+chronos-local,0.01,0.01,0.01,60.0
+chronos2-multi,0.01,0.01,0.01,1.0
+chronos2-uni,0.01,0.01,0.01,1.0
+lnn,0.01,0.01,0.01,0.01
