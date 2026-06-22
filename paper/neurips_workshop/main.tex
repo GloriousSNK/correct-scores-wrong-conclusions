@@ -51,39 +51,29 @@ Integrators on $k$-Pendulum Systems}
 \maketitle
 
 \begin{abstract}
-We ask a deliberately operational question: given the state of a chaotic
-mechanical system at time $t$, which family of modern models best predicts its
-state at $t+T$, and at what reliability and cost? We build a controlled benchmark
-on $k$-link pendulums ($k\in\{1,2,3\}$; chaotic for $k\ge2$) that places four
-model families on identical inputs and metrics: frontier large language models
-(LLMs), a time-series foundation model (Chronos), learned dynamics models
-(Neural~ODE, Hamiltonian and Lagrangian neural networks), and classical
-integrators (Euler, RK4, symplectic). Crucially, every family is evaluated on the
-\emph{same shared out-of-sample held-out trajectories}, so the learned models are
-not scored on their own training data---a confound that, we show, inflates them by
-roughly $3{\times}$. Three contributions follow. \textbf{(i)~A reliability-adjusted
-evaluation.} Averaging error only over a model's \emph{answered} cells rewards
-selective abstention; we instead score unanswered or invalid cells at a
-random-guess baseline, which reorders the leaderboard and exposes a brittle
-frontier LLM that answers only $82\%$ of cells. \textbf{(ii)~Out-of-sample, the
-ranking inverts.} On the shared held-out set, classical integrators dominate, and
-the best \emph{non-numerical} forecaster is a frontier LLM (kimi, $0.538$\,rad),
-ahead of the time-series model and \emph{every} learned model---which collapse from
-an in-sample ${\sim}0.26$ to $0.84$--$1.06$\,rad once tested off their training
-trajectories. The training objective still matters (rollout loss beats derivative
-matching, $p_{\mathrm{Holm}}{=}1.6{\times}10^{-7}$), but the in-sample ``mixed-$k$
-wins'' result does not survive: mixed-$k$ is statistically indistinguishable from
-single-$k$. \textbf{(iii)~Chaos-appropriate analysis.} A predictability-horizon
-metric shows only numerical integrators track the system below strict error
-thresholds past $1$\,s. A confound-free, matched-constant
-system-identification test then dismantles an apparent ``LLMs do better with
-hidden constants'' effect: once initial conditions are held fixed, disclosing the
-constants is no worse (and at $k{=}1$ clearly better), and a direct inference probe
-shows the LLMs do not recover the constants---they fall back on Earth-standard
-priors. Overall, for chaotic forecasting the headline is a cautionary one: in-sample
-evaluation of learned dynamics models is badly optimistic, and on a level
-out-of-sample field a frontier LLM is the strongest learned forecaster while
-classical numerics remain unbeaten.
+Can a general-purpose model forecast a chaotic physical system out of distribution,
+and how should such a comparison even be scored? We build a controlled $k$-pendulum
+benchmark ($k\in\{1,2,3\}$; chaotic for $k\ge2$) that evaluates four model
+families---large language models (LLMs), a time-series foundation model (Chronos),
+learned dynamics models (Neural~ODE, Hamiltonian and Lagrangian neural networks), and
+classical integrators (Euler, RK4, symplectic)---on the \emph{same held-out
+trajectories}, so the learned models are never scored on their own training data. Two
+methodological choices drive the findings: an \emph{out-of-sample} protocol, and a
+\emph{reliability-adjusted} metric that scores a model's refusals and parse failures
+rather than discarding them. The results invert the in-sample story. Tested off their
+training trajectories the learned dynamics models roughly triple their error
+($\sim$0.26 $\to$ 0.84--1.06\,rad) and fall behind both a zero-shot time-series model
+and a frontier LLM; among \emph{black-box} methods the best forecaster is an LLM
+(\texttt{kimi}, $0.538$\,rad), while the known-physics integrators---given the exact
+equations---remain the ceiling by construction. The training \emph{objective}
+generalises (rollout loss beats derivative matching,
+$p_{\mathrm{Holm}}{=}1.6{\times}10^{-7}$), but the in-sample ``mixed-$k$ wins'' result
+does not (a statistical null out of sample). Finally, a confound-free matched
+experiment plus a direct inference probe find \emph{little evidence} that LLMs infer
+hidden physical constants---under our benchmark's information conditions they default
+to Earth-standard priors. The takeaway is methodological: for chaotic forecasting,
+evaluate out of sample, score abstentions, and demand matched controls before
+crediting inference.
 \end{abstract}
 
 \section{Introduction}
@@ -159,11 +149,16 @@ system, not qualitative or symbolic reasoning.
 \subsection{Task and systems}
 Given the state $\mathbf{s}_0=(\theta_1,\dots,\theta_k,\omega_1,\dots,\omega_k)\in
 \mathbb{R}^{2k}$ of a $k$-link pendulum at $t{=}0$, predict $\mathbf{s}_T$ at a
-horizon $T$. Ground-truth trajectories use the full nonlinear Lagrangian equations
-of motion integrated with \texttt{scipy}'s DOP853 at $\Delta t{=}10^{-3}$\,s
-(rtol $10^{-10}$, atol $10^{-12}$). Initial conditions are sampled
-$\theta_i\sim\mathcal{U}(-3,3)$\,rad, $\omega_i\sim\mathcal{U}(-1,1)$\,rad/s with a
-fixed seed.
+horizon $T$. Ground-truth trajectories integrate the full nonlinear Lagrangian
+equations of motion with \textbf{fixed-step RK4 at $\Delta t{=}10^{-3}$\,s}, recording
+states every $0.01$\,s plus a $10$\,s pre-$t{=}0$ context window (used only by the
+time-series models). Initial conditions are sampled $\theta_i\sim\mathcal{U}(-3,3)$\,rad,
+$\omega_i\sim\mathcal{U}(-1,1)$\,rad/s with a fixed seed. Because the labels are
+themselves produced by RK4 (at this fine step), the RK4 \emph{baseline} reported later
+(the same integrator at a $10{\times}$ coarser $\Delta t{=}10^{-2}$) is an \emph{oracle
+ceiling by construction} rather than an independent competitor; Euler and the symplectic
+integrator are genuinely distinct known-physics methods. We make the inputs available to
+each family explicit in \S\ref{sec:inputs}.
 
 \subsection{Regimes and grid}
 Three regimes test generalisation to non-standard constants
@@ -199,6 +194,42 @@ Regime & $g$ (m/s$^2$) & $L$ (m) & $m$ (kg) & damping & disclosed \\
 \texttt{normal} & 9.81 & 1.0 & 1.0 & 0.0 & --- \\
 \texttt{changed\_disclosed} & 3.71 & 1.4/0.7/1.1 & 2.0/0.6/1.5 & 0.05 & yes \\
 \texttt{changed\_hidden} & 1.62 & 0.8/1.2/0.9 & 0.5/1.8/1.0 & 0.10 & no \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{What each model is given, and a fair grouping}
+\label{sec:inputs}
+Table~\ref{tab:inputs} states exactly what each family receives. Two asymmetries are
+worth naming up front, and both \emph{favour the non-LLM models}, which makes our
+headline LLM result conservative: (i)~the time-series model (Chronos) is the only one
+that receives the pre-$t{=}0$ \emph{history} window; the LLMs and learned models see
+only the single $t{=}0$ state. (ii)~The learned models are handed the \emph{true}
+constants in every regime---including \texttt{changed\_hidden}, since they encode
+constants as network inputs---whereas the LLMs are told the constants only when
+disclosed. Despite both advantages, the learned models and Chronos are beaten
+out-of-sample by an LLM that gets neither history nor hidden constants
+(\S\ref{sec:reliability}).
+
+We accordingly group methods into \textbf{known-physics} (RK4, Euler, symplectic ---
+given the exact equations and constants) and \textbf{black-box / data-driven} (LLMs,
+Chronos, learned dynamics). The known-physics methods are a ceiling by construction;
+the scientific question is which \emph{black-box} family forecasts best.
+
+\begin{table}[t]
+\centering\small
+\caption{Inputs available to each model family. ``Constants'' $=(g,L,m,\text{damping})$.
+Only Chronos receives history; only the learned models receive the true constants even
+in the \texttt{hidden} regime --- both asymmetries favour the non-LLM models.}
+\label{tab:inputs}
+\begin{tabular}{lcccc}
+\toprule
+Family & State $t{=}0$ & History $t{<}0$ & Constants & Equations of motion \\
+\midrule
+Numerical (RK4/Euler/sympl.) & \checkmark & --- & \checkmark\ (all regimes) & \checkmark\ (exact) \\
+Learned (NODE/HNN/LNN) & \checkmark & --- & \checkmark\ (all regimes) & --- (learned) \\
+Time-series (Chronos) & --- & \checkmark\ ($10$\,s) & --- & --- \\
+LLMs (kimi/grok/deepseek) & \checkmark & --- & except \texttt{hidden} & --- \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -243,9 +274,10 @@ asks the hidden-condition model to report its inferred constants.
 \label{sec:methods}
 
 \paragraph{LLMs.} We evaluate \texttt{kimi-k2.6}, \texttt{grok-4-1-fast-reasoning},
-and \texttt{deepseek-v4-pro} through an OpenAI-compatible API, with a structured
-prompt (system description, disclosed constants where applicable, initial state)
-and a JSON answer schema (Appendix~A). Reasoning models that emit long
+and \texttt{deepseek-v4-pro} through an OpenAI-compatible API (Azure AI Foundry
+deployments; evaluated June~2026), with a structured prompt (system description,
+disclosed constants where applicable, initial state) and a JSON answer schema
+(verbatim in Appendix~A). Reasoning models that emit long
 chains-of-thought require large token budgets and timeouts, so we use a uniform
 reliability-fixed configuration ($65{,}536$ max tokens, $300$\,s timeout) for all
 three; reasoning traces are parsed from the dedicated reasoning channel when
@@ -255,8 +287,11 @@ The total API cost of the out-of-sample LLM evaluation (Parts~A and~B,
 $3{,}960$ cells) was \$110.
 
 \paragraph{Time-series foundation models.} We run Chronos~\citep{ansari2024chronos}
-locally on a single GPU via a lightweight adapter that resamples the pre-$t{=}0$
-history onto a uniform grid and forecasts the $2k$ state channels. The out-of-sample
+locally on a single GPU. Chronos is the \emph{only} model given history: its adapter
+takes the $10$\,s pre-$t{=}0$ window of all $2k$ state channels (the
+\texttt{pre\_context} window), resamples it onto a uniform grid of up to $512$ points,
+and autoregressively forecasts to the target horizon (prediction length capped at the
+model's supported range, $\le 64$ steps). The out-of-sample
 leaderboard uses \texttt{chronos-2}, which forecasts either each channel
 independently (\emph{univariate}) or all $2k$ channels jointly (\emph{multivariate});
 this lets us test, with one model, whether modelling cross-channel coupling helps on a
@@ -409,9 +444,10 @@ $p_{\mathrm{Holm}}{=}0.089$), and for the HNN it is numerically \emph{worse}
 architecture-agnostic benefit of mixing horizons was, on held-out trajectories,
 within noise. Finally, full-scale CUDA training of the LNN---finally running the
 second-order autograd its loss requires---leaves it the \emph{worst} model
-($1.421$), with $55\%$ of cells diverging to NaN under autograd-ODE integration; its
-weakness is intrinsic to the Lagrangian-net$+$ODE formulation on this chaotic
-system, not a hardware artefact.
+($1.421$), with $55\%$ of cells diverging to NaN under our autograd-ODE integration.
+We do not claim LNNs are intrinsically weak; rather, \emph{under our implementation and
+evaluation protocol} the LNN was numerically unstable and generalised poorly out of
+sample.
 
 \begin{table}[t]
 \centering\small
@@ -577,8 +613,9 @@ leaderboard invites does not survive a level playing field. For chaotic systems 
 lesson is concrete: a learned simulator must be reported on trajectories it never saw,
 or its headline number is largely a memorisation artefact.
 
-\paragraph{On a level field, a frontier LLM is the strongest learned forecaster.} Out
-of sample the best non-numerical model is \texttt{kimi} ($0.538$\,rad), ahead of both
+\paragraph{On a level field, a frontier LLM is the strongest black-box forecaster here.}
+In this benchmark, out of sample, the best non-numerical model is \texttt{kimi}
+($0.538$\,rad), ahead of both
 Chronos modes ($0.68$--$0.70$) and every learned dynamics model ($0.84$--$1.06$); only
 the classical integrators remain clearly ahead. The training \emph{objective} still
 moves the needle---rollout loss decisively beats derivative matching---but the
@@ -603,9 +640,19 @@ that toggles \emph{only} disclosure on identical trajectories, hiding the consta
 if anything slightly \emph{worse} ($+0.069$\,rad overall; $+0.297$ at $k{=}1$), and a
 direct inference probe shows the models do not recover the constants at all: they fall
 back on Earth-standard priors ($g$ MAE ${\sim}1.8$--$2.1$ against true
-$g\in[1.6,12]$). The one capability the optimistic story singled out does not, on
-inspection, exist; we caution against reading regime contrasts as inference without a
-confound-free matched test.
+$g\in[1.6,12]$). Under our benchmark's information conditions we therefore find
+\emph{little evidence} that the LLMs infer hidden physical parameters; we caution
+against reading regime contrasts as inference without a confound-free matched test.
+
+\paragraph{Cost and practicality.} Accuracy alone hides a sharp cost gap. The
+out-of-sample LLM evaluation cost \$110 in API fees ($3{,}960$ cells,
+${\sim}\$0.03$ per forecast) and is the \emph{only} family billed per query; the
+numerical and time-series models are free at inference, and the learned models are free
+after a one-time training cost (minutes to a few hours on one $8$\,GB GPU). The
+strongest black-box forecaster (\texttt{kimi}) is thus also the most expensive, whereas a
+model trained on the system forecasts for free at $100\%$ reliability and only modestly
+higher error. We report cost beside error so the trade-off is explicit rather than
+buried.
 
 \section{Limitations}
 The out-of-sample leaderboard aggregates $180$ held-out trajectories ($60$ per regime)
@@ -635,14 +682,22 @@ unbeaten. The training objective, not the architecture, is what generalises---ro
 loss beats derivative matching---but the in-sample ``mixed-$k$ wins'' result is a
 statistical null out of sample. Reliability-adjusted scoring and chaos-appropriate
 metrics overturn the naive leaderboard, and a confound-free matched experiment plus a
-direct inference probe dismantle the one apparent bright spot for general models: there
-is no in-context system identification, only Earth-prior anchoring. The lesson worth
-carrying forward is methodological---test learned simulators out of sample, score
-abstentions, and demand a matched control before crediting inference.
+direct inference probe weaken the one apparent bright spot for general models: under our
+information conditions we find little evidence of in-context system identification, with
+models defaulting to Earth-standard priors. The lesson worth carrying forward is
+methodological---test learned simulators out of sample, score abstentions, and demand a
+matched control before crediting inference.
 
-\paragraph{Reproducibility.} Code, prompts, trained weights, and per-cell
-checkpoints are released with the benchmark. All training and evaluation in this
-round run on a single consumer GPU (8\,GB); no proprietary training data is used.
+\paragraph{Reproducibility.} Code, exact prompts (Appendix~A), trained weights, the
+shared held-out specification, and per-cell checkpoints are released with the benchmark.
+Training trajectories use seed $42$; the held-out evaluation set uses a \emph{disjoint}
+seed ($\texttt{20260620}$), $180$ trajectories ($60$ per regime). LLMs
+(\texttt{kimi-k2.6}, \texttt{grok-4-1-fast-reasoning}, \texttt{deepseek-v4-pro}, via
+Azure AI Foundry, evaluated June~2026) are sampled \emph{once} at temperature $0$ (no
+best-of-$N$). A cell is scored as \emph{answered} iff it returns a parseable, finite
+prediction; otherwise it is assigned the reliability-adjusted baseline $\pi/2$. All local
+training and evaluation run on a single consumer GPU (8\,GB); no proprietary training
+data is used.
 
 \section*{Author Contributions}
 S.N.K.\ (lead author, corresponding) conceived and designed the benchmark, built the
@@ -658,11 +713,50 @@ the corresponding author. All authors reviewed and approved the final manuscript
 
 \appendix
 \section{Prompt templates}
-The coordinate, direct-prompt template provides the system description, the
-disclosed constants (omitted in \texttt{changed\_hidden}), and the initial state,
-and requires a JSON object \verb|{"theta":[...],"omega":[...]}|. The
-chain-of-thought variant prepends a step-by-step reasoning instruction. Full
-templates are in the released code.
+The exact prompts (from \texttt{bench/prompts.py}) are reproduced verbatim below.
+
+\paragraph{System prompt (direct / no-CoT).}
+\begin{small}\begin{verbatim}
+You are a careful physicist predicting the future state of a k-pendulum (a chain of
+k point masses on massless rods, hinged in a planar chain, swinging under gravity
+with viscous damping). Respond with ONLY a single JSON object on one line, no prose,
+no code fences. Schema: {"theta": [..k floats..], "omega": [..k floats..]} where
+theta_i is in radians (link i measured from straight-down, positive counter-clockwise)
+and omega_i is angular velocity in rad/s.
+\end{verbatim}\end{small}
+
+\paragraph{System prompt (chain-of-thought).} Same preamble, then: ``Reason
+step-by-step about the dynamics, then output your final answer. Wrap the final answer
+in \texttt{<answer>...</answer>} tags containing ONLY a single JSON object:
+\{"theta": [..k floats..], "omega": [..k floats..]\}.''
+
+\paragraph{User prompt (coordinate modality).}
+\begin{small}\begin{verbatim}
+Number of links k = {k}
+Physical constants:
+  g (gravity, m/s^2): {g}
+  L (rod lengths, m): {L}
+  m (point masses, kg): {m}
+  damping (viscous coefficient on omega): {damping}
+Initial state at t=0:
+  theta_0 (rad): {theta0}
+  omega_0 (rad/s): {omega0}
+Predict the state at t = {T} seconds.
+Return theta and omega as length-{k} JSON arrays.
+\end{verbatim}\end{small}
+
+\paragraph{Hidden-constants regime.} The constants block above is replaced by:
+\begin{small}\begin{verbatim}
+Physical constants: HIDDEN. The numerical values of gravity, rod lengths, point
+masses, and damping are NOT disclosed. You must infer dynamics from the initial
+conditions alone.
+\end{verbatim}\end{small}
+
+\paragraph{Parsing and scoring.} Each response is stripped of code fences and (for
+CoT) of everything outside the \texttt{<answer>...</answer>} tags; the first
+\texttt{\{...\}} object is JSON-parsed and validated to contain length-$k$
+\texttt{theta} and \texttt{omega} arrays. Any response failing these checks is counted
+as \emph{unanswered} and scored at the reliability-adjusted baseline $\pi/2$.
 
 \section{Training and compute}
 All learned models use a $256$-wide, $3$-layer tanh MLP, Adam, cosine-annealed
