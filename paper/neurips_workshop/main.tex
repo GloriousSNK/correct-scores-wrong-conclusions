@@ -73,18 +73,22 @@ $p_{\mathrm{Holm}}{=}1.6{\times}10^{-7}$), but the in-sample ``mixed-$k$ wins'' 
 does not (a statistical null out of sample). Finally, a confound-free matched
 experiment plus a direct inference probe find \emph{little evidence} that LLMs infer
 hidden physical constants---under our benchmark's information conditions they default
-to Earth-standard priors. The takeaway is methodological: for chaotic forecasting,
-evaluate out of sample, score abstentions, and demand matched controls before
-crediting inference.
+to Earth-standard priors. The takeaway is methodological: in-sample evaluation can
+substantially overestimate learned-dynamics performance, underscoring the importance of
+controlled out-of-sample benchmarks when comparing scientific forecasting methods.
 \end{abstract}
 
 \section{Introduction}
 
-Large language models are increasingly applied to scientific tasks, and
-time-series foundation models now offer general-purpose forecasting out of the
-box. A natural question for physical modelling is whether either family can serve
-as a \emph{simulator}: given the state of a dynamical system at time $t$, can it
-predict the state at $t+T$? The $k$-link pendulum is an ideal probe. Single
+Comparing forecasting methods for chaotic physical systems is deceptively hard: the
+verdict depends on whether models are tested in or out of sample, on how failures are
+scored, and on whether different families are given comparable information. We treat this
+as a \emph{benchmark-methodology} problem. Modern forecasters span very different
+families---large language models (LLMs), time-series foundation models, learned dynamics
+models, and classical integrators---yet are rarely placed on one substrate under
+identical, out-of-sample conditions. Given the state of a dynamical system at time $t$,
+which family best predicts the state at $t+T$, and how should that comparison be scored?
+The $k$-link pendulum is an ideal probe. Single
 pendulums ($k{=}1$) are integrable; double and triple pendulums ($k{\ge}2$) are
 chaotic with a positive Lyapunov exponent. The task is unambiguous (predict
 angles and angular velocities), ground truth is computable to arbitrary
@@ -105,8 +109,9 @@ in which all families are scored on the \emph{same out-of-sample held-out
 trajectories} and a \textbf{reliability-adjusted metric} scores abstentions instead
 of discarding them (\S\ref{sec:metrics}, \S\ref{sec:reliability}).
 \item An \textbf{out-of-sample leaderboard that inverts the in-sample story}: tested
-off their training trajectories the learned models collapse ($\sim$0.26 $\to$
-0.84--1.06\,rad), and the best non-numerical forecaster is a frontier LLM (kimi,
+off their training trajectories the learned models degrade substantially ($\sim$0.26 $\to$
+0.84--1.06\,rad), and among the models evaluated the strongest black-box forecaster is a
+frontier LLM (kimi,
 0.538\,rad). The training objective still matters---rollout loss beats derivative
 matching significantly---but mixed-$k$ rollout, the in-sample winner, is a
 statistical null out-of-sample (\S\ref{sec:objective}).
@@ -318,8 +323,8 @@ prior incarnation could not reach.
 
 \paragraph{Integrators.} Euler, RK4, and St\"ormer--Verlet (symplectic) at
 $\Delta t{=}0.01$\,s using the exact equations of motion; their error is purely from
-discretisation. RK4 is the data-generating process and therefore an oracle ceiling,
-not a competitor.
+discretisation. RK4 is the data-generating process and therefore serves as an oracle
+ceiling rather than an independent competitor.
 
 \section{Results}
 
@@ -335,11 +340,12 @@ cells, is affected). LLMs are scored on their direct-prompt forecasts, the setti
 all families share. Confidence intervals are $95\%$ paired bootstrap ($B{=}10^4$).
 
 Three things stand out. First, classical integrators dominate: RK4 (the
-data-generating oracle) at $0.059$, symplectic at $0.205$, Euler at $0.405$.
-Second, \textbf{the best non-numerical forecaster is a frontier LLM}---\texttt{kimi}
-at $0.538$\,rad ($99\%$ answered)---ahead of both Chronos modes and, strikingly,
-\emph{every} learned dynamics model. Third, the learned models, which in an
-in-sample evaluation scored ${\sim}0.26$\,rad, collapse to $0.84$--$1.06$\,rad once
+data-generating process, hence an oracle ceiling) at $0.059$, symplectic at $0.205$,
+Euler at $0.405$. Second, \textbf{among the models evaluated, \texttt{kimi} is the
+strongest black-box forecaster}---at $0.538$\,rad ($99\%$ answered)---ahead of both
+Chronos modes and, strikingly, \emph{every} learned dynamics model. Third, the learned
+models, which in an in-sample evaluation scored ${\sim}0.26$\,rad, degrade substantially
+to $0.84$--$1.06$\,rad once
 they are tested on trajectories they were not trained on: the best of them
 (mixed-$k$ rollout Neural~ODE, $0.844$) ranks $6$th, behind the integrators, a
 zero-shot LLM (\texttt{kimi}), and both zero-shot Chronos modes. This $\sim$3$\times$ gap between in-sample and
@@ -352,7 +358,7 @@ substantially an artefact of evaluating them on their own training data.
 \caption{Out-of-sample leaderboard on the shared held-out set ($360$ cells,
 horizons $\{1,10\}$\,s). Reliability-adjusted mean angle error (rad): unanswered or
 missing cells scored at the random-guess baseline $\pi/2$; $95\%$ bootstrap CI.
-RK4 is the data-generating oracle. New in this work marked $\dagger$.}
+RK4 is the data-generating process, hence an oracle ceiling rather than a competitor. New in this work marked $\dagger$.}
 \label{tab:overall}
 \begin{tabular}{rlcccl}
 \toprule
@@ -388,7 +394,7 @@ be overlooked.
 \subsection{Behaviour by horizon}
 Table~\ref{tab:horizon} splits the out-of-sample error by horizon. At $1$\,s the
 ordering already mirrors the leaderboard: the integrators are near-exact, \texttt{kimi}
-($0.457$) is the best non-numerical model, and the learned models sit at
+($0.457$) is the strongest black-box model, and the learned models sit at
 $0.76$--$0.97$. At $10$\,s every model is well into the chaotic regime, but the
 ranking is stable rather than scrambled---\texttt{kimi} ($0.619$) still leads the
 non-numerical field while the learned models drift to $0.91$--$1.26$. Notably the
@@ -679,7 +685,7 @@ lesson is concrete: a learned simulator must be reported on trajectories it neve
 or its headline number is largely a memorisation artefact.
 
 \paragraph{On a level field, a frontier LLM is the strongest black-box forecaster here.}
-In this benchmark, out of sample, the best non-numerical model is \texttt{kimi}
+In this benchmark, out of sample, the strongest black-box model is \texttt{kimi}
 ($0.538$\,rad), ahead of both
 Chronos modes ($0.68$--$0.70$) and every learned dynamics model ($0.84$--$1.06$); only
 the classical integrators remain clearly ahead. The training \emph{objective} still
@@ -705,8 +711,8 @@ that toggles \emph{only} disclosure on identical trajectories, hiding the consta
 if anything slightly \emph{worse} ($+0.069$\,rad overall; $+0.297$ at $k{=}1$), and a
 direct inference probe shows the models do not recover the constants at all: they fall
 back on Earth-standard priors ($g$ MAE ${\sim}1.8$--$2.1$ against true
-$g\in[1.6,12]$). Under our benchmark's information conditions we therefore find
-\emph{little evidence} that the LLMs infer hidden physical parameters; we caution
+$g\in[1.6,12]$). Under the observation and prompting conditions of this benchmark we therefore find
+\emph{little evidence} that the models infer hidden physical parameters; we caution
 against reading regime contrasts as inference without a confound-free matched test.
 
 \paragraph{Cost and practicality.} Accuracy alone hides a sharp cost gap. The
@@ -741,15 +747,15 @@ On a controlled $k$-pendulum benchmark spanning four model families under identi
 conditions and---crucially---on the \emph{same out-of-sample held-out trajectories},
 the headline is cautionary. In-sample evaluation of learned dynamics models is badly
 optimistic: scored off their training data the learned models triple their error and
-drop behind both a zero-shot time-series model and a frontier LLM, so that on a level
-field \texttt{kimi} is the best non-numerical forecaster and classical numerics remain
-unbeaten. The training objective, not the architecture, is what generalises---rollout
+drop behind both a zero-shot time-series model and a frontier LLM, so that in this
+benchmark the strongest black-box forecaster is a frontier LLM (\texttt{kimi}), while
+numerical integrators remain the ceiling when the governing equations are known. The training objective, not the architecture, is what generalises---rollout
 loss beats derivative matching---but the in-sample ``mixed-$k$ wins'' result is a
 statistical null out of sample. Reliability-adjusted scoring and chaos-appropriate
 metrics overturn the naive leaderboard, and a confound-free matched experiment plus a
-direct inference probe weaken the one apparent bright spot for general models: under our
-information conditions we find little evidence of in-context system identification, with
-models defaulting to Earth-standard priors. The lesson worth carrying forward is
+direct inference probe weaken the one apparent bright spot for general models: under the observation and
+prompting conditions of this benchmark, we find little evidence that the models infer
+hidden physical parameters---instead they default to Earth-standard priors. The lesson worth carrying forward is
 methodological---test learned simulators out of sample, score abstentions, and demand a
 matched control before crediting inference.
 
