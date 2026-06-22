@@ -7,7 +7,7 @@ reliability and cost?** We place four model families on identical inputs and met
 models** (Neural ODE, HNN, LNN), and **classical integrators** (Euler, RK4, symplectic)
 — and, crucially, score every family on the **same out-of-sample held-out trajectories**.
 
-📄 **Paper:** [`paper/neurips_workshop/DoublePendulum.pdf`](paper/neurips_workshop/DoublePendulum.pdf)
+📄 **Paper:** [`paper/manuscripts/ChaosForecastingAcrossModelFamilies.pdf`](paper/manuscripts/ChaosForecastingAcrossModelFamilies.pdf)
 (NeurIPS workshop manuscript; LaTeX source in the same folder).
 
 ## Headline result (out-of-sample, reliability-adjusted)
@@ -72,7 +72,7 @@ scripts/
   analyze_boot_cis.py          # per-model CIs + paired contrasts
   export_heldout.py            # compact shared held-out eval spec
 config.yaml            # main grid; config.boot.yaml / config.tsboot.yaml for sub-studies
-paper/neurips_workshop/   # main.tex, references.bib, DoublePendulum.pdf
+paper/manuscripts/        # main.tex, references.bib, ChaosForecastingAcrossModelFamilies.pdf
 results/                  # summaries + trained weights (raw checkpoints via Release)
 ```
 
