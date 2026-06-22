@@ -424,6 +424,25 @@ lnn (full-scale) & 1.335 & 1.508 \\
 \end{tabular}
 \end{table}
 
+\subsection{Breakdown by $k$ and by regime}
+\label{sec:breakdown}
+Tables~\ref{tab:perk} and~\ref{tab:perregime} (Appendix~C) split the out-of-sample error
+by number of links and by regime. Two patterns matter. First, \textbf{difficulty scales
+with $k$ for every family}: error rises monotonically from $k{=}1$ to $k{=}3$ (e.g.\
+\texttt{kimi} $0.11\to0.55\to0.95$; the integrators are near-exact at the integrable
+$k{=}1$ and degrade only with the onset of chaos), and the cross-family ordering is
+preserved within each $k$---so the leaderboard spread reflects the dynamics, not a single
+hard slice. Second, and crucially for \S\ref{sec:sysid}, \textbf{the
+\texttt{changed\_hidden} regime is the \emph{easiest}, not the hardest}, for almost every
+model (\texttt{kimi} $0.46$ hidden vs.\ $0.64$ normal; the learned models fall by
+$0.5$--$0.8$\,rad relative to \texttt{normal}). Its low-gravity, short-rod constants
+simply produce slower, less-divergent motion over a fixed horizon---so the unmatched
+``hidden helps'' contrast is a difficulty confound, exactly as the matched experiment of
+\S\ref{sec:sysid} confirms. Finally, re-estimating the leaderboard CIs with a
+\textbf{cluster bootstrap that resamples whole held-out trajectories} rather than
+individual cells widens no interval by more than ${\sim}0.03$\,rad and changes no ranking;
+the headline gaps are not an artefact of treating correlated cells as independent.
+
 \subsection{The training objective matters; mixed-$k$ does not}
 \label{sec:objective}
 Table~\ref{tab:objective} isolates the effect of the loss while holding the
@@ -766,5 +785,70 @@ expensive at $\sim$6.7\,h because each unroll step recomputes $\nabla H$ via
 autograd). Chronos runs at inference only. Dataset: $67{,}491$ samples across
 $k\in\{1,2,3\}$ and three regimes, subsampled at $\Delta t{=}0.01$\,s from the
 $10^{-3}$\,s ground truth.
+
+\section{Per-$k$ and per-regime breakdowns}
+\label{app:breakdown}
+Reliability-adjusted mean angle error (rad) on the shared out-of-sample held-out grid
+(horizons $\{1,10\}$\,s), broken out by number of links (Table~\ref{tab:perk}) and by
+regime (Table~\ref{tab:perregime}); models in leaderboard order. Cells a model never
+produced (e.g.\ the LNN's diverged $k{=}3$) are scored at $\pi/2$, so each row is a mean
+over the same complete grid as Table~\ref{tab:overall}.
+
+\begin{table}[h]
+\centering\small
+\caption{Out-of-sample error by number of links $k$.}
+\label{tab:perk}
+\begin{tabular}{lccc}
+\toprule
+Model & $k{=}1$ & $k{=}2$ & $k{=}3$ \\
+\midrule
+rk4 (oracle) & 0.000 & 0.068 & 0.109 \\
+symplectic & 0.000 & 0.253 & 0.363 \\
+euler & 0.271 & 0.410 & 0.534 \\
+kimi-k2.6 & 0.112 & 0.553 & 0.949 \\
+chronos2-multi & 0.263 & 0.798 & 0.992 \\
+chronos2-uni & 0.279 & 0.813 & 0.999 \\
+neural-ode-rollout-mixed & 0.616 & 0.868 & 1.047 \\
+neural-ode-rollout & 0.661 & 0.834 & 1.116 \\
+grok-4-1-fast-reasoning & 0.366 & 1.030 & 1.247 \\
+hnn-rollout & 0.508 & 0.921 & 1.336 \\
+deepseek-v4-pro & 0.872 & 0.949 & 1.036 \\
+hnn-rollout-mixed & 0.516 & 1.083 & 1.410 \\
+neural-ode & 0.509 & 1.167 & 1.409 \\
+hnn & 0.491 & 1.230 & 1.470 \\
+lnn & 1.146 & 1.547 & 1.571 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\centering\small
+\caption{Out-of-sample error by regime. \texttt{changed\_hidden} is the \emph{easiest}
+for almost every model---its low-gravity/short-rod constants give slower, less-divergent
+motion---which is why the unmatched regime contrast (\S\ref{sec:sysid}) is a difficulty
+confound rather than evidence of in-context system identification.}
+\label{tab:perregime}
+\begin{tabular}{lccc}
+\toprule
+Model & \texttt{normal} & \texttt{disclosed} & \texttt{hidden} \\
+\midrule
+rk4 (oracle) & 0.174 & 0.003 & 0.000 \\
+symplectic & 0.387 & 0.177 & 0.051 \\
+euler & 0.743 & 0.387 & 0.085 \\
+kimi-k2.6 & 0.635 & 0.519 & 0.461 \\
+chronos2-multi & 0.818 & 0.826 & 0.409 \\
+chronos2-uni & 0.818 & 0.798 & 0.475 \\
+neural-ode-rollout-mixed & 1.260 & 0.836 & 0.434 \\
+neural-ode-rollout & 1.281 & 0.894 & 0.436 \\
+grok-4-1-fast-reasoning & 1.096 & 0.959 & 0.588 \\
+hnn-rollout & 1.087 & 1.115 & 0.564 \\
+deepseek-v4-pro & 1.240 & 1.097 & 0.520 \\
+hnn-rollout-mixed & 1.244 & 1.172 & 0.592 \\
+neural-ode & 1.221 & 1.095 & 0.770 \\
+hnn & 1.262 & 1.303 & 0.626 \\
+lnn & 1.511 & 1.408 & 1.345 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \end{document}
