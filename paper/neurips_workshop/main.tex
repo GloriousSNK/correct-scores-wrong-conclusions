@@ -31,6 +31,8 @@
 \usepackage{amsfonts,amsmath,amssymb}
 \usepackage{microtype}
 \usepackage{graphicx}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
 \usepackage{xcolor}
 \usepackage{siunitx}
 \usepackage{multirow}
@@ -395,7 +397,12 @@ $1$--$10$\,s, is here merely mid-pack ($0.779$ / $0.908$), worse than a zero-sho
 LLM at both horizons. The qualitative LLM signature from earlier rounds---confident
 near $t{=}0$, regressing to a generic chaotic guess later---is consistent with these
 numbers but is no longer a disqualifier relative to the (now equally struggling)
-learned models.
+learned models. Figure~\ref{fig:errorgrowth} plots the full growth curves over the
+$\{0.01,1,10,60\}$\,s ladder and makes the divergence structure explicit: the numerical
+integrators stay near zero until ${\sim}10$\,s, whereas every \emph{black-box} family
+saturates near the chaotic noise floor almost immediately and is essentially flat from
+$1$\,s onward---so the $\{1,10\}$\,s window used for the leaderboard is exactly where the
+families are still separable.
 
 \begin{table}[t]
 \centering\small
@@ -423,6 +430,45 @@ lnn (full-scale) & 1.335 & 1.508 \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}
+\begin{semilogxaxis}[
+  width=0.9\linewidth, height=6.2cm,
+  xlabel={Prediction horizon $T$ (s)}, ylabel={Mean angle error (rad)},
+  xmin=0.008, xmax=75, ymin=0, ymax=1.68,
+  xtick={0.01,0.1,1,10,60}, log ticks with fixed point,
+  legend pos=south east,
+  legend style={font=\scriptsize, fill=white, fill opacity=0.9, draw=none, cells={anchor=west}},
+  grid=both, grid style={gray!18}, tick align=outside,
+  every axis plot/.append style={thick, mark size=1.5pt},
+]
+\addplot+[mark=*]         coordinates {(0.01,0.000) (1,0.000) (10,0.118) (60,0.271)};
+\addlegendentry{rk4 (oracle)}
+\addplot+[mark=triangle*] coordinates {(0.01,0.000) (1,0.042) (10,0.368) (60,0.303)};
+\addlegendentry{symplectic}
+\addplot+[mark=square*]   coordinates {(0.01,0.000) (1,0.067) (10,0.743) (60,0.781)};
+\addlegendentry{euler}
+\addplot+[mark=diamond*]  coordinates {(1,0.457) (10,0.619)};
+\addlegendentry{kimi (LLM)}
+\addplot+[mark=pentagon*] coordinates {(0.01,0.040) (1,0.591) (10,0.777) (60,0.764)};
+\addlegendentry{chronos-2}
+\addplot+[mark=o]         coordinates {(0.01,0.011) (1,0.790) (10,0.950) (60,0.736)};
+\addlegendentry{neural-ode (rollout)}
+\addplot+[mark=x]         coordinates {(0.01,0.821) (1,1.335) (10,1.508) (60,1.492)};
+\addlegendentry{lnn}
+\draw[dashed, gray!70] (axis cs:0.008,1.5708) -- (axis cs:75,1.5708);
+\node[anchor=west, gray, font=\scriptsize] at (axis cs:0.011,1.62) {random guess $\pi/2$};
+\end{semilogxaxis}
+\end{tikzpicture}
+\caption{Error growth with prediction horizon (out-of-sample, reliability-adjusted; log
+time axis). Numerical integrators stay near zero until ${\sim}10$\,s and only then
+diverge, while every black-box family (LLM, time-series, learned) saturates near the
+chaotic noise floor almost immediately and is essentially flat from $1$\,s onward. LLMs
+were evaluated at $\{1,10\}$\,s only. Dashed line: random-guess baseline $\pi/2$.}
+\label{fig:errorgrowth}
+\end{figure}
 
 \subsection{Breakdown by $k$ and by regime}
 \label{sec:breakdown}
