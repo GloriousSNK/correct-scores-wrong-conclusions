@@ -1,170 +1,133 @@
-# Pendulum Physics Benchmark for LLMs / VLMs
+# Forecasting Chaos Across Model Families
 
-End-to-end harness for **"Can LLMs Predict Physics?"** (see [SPEC.md](SPEC.md)).
-Includes a k-pendulum simulator, numerical baselines, Azure AI Foundry
-LLM + VLM adapters, and a parallel, checkpointed evaluation runner.
+A controlled benchmark that asks: **given the state of a chaotic $k$-pendulum at time
+$t$, which family of modern models best predicts its state at $t+T$ — and at what
+reliability and cost?** We place four model families on identical inputs and metrics —
+**LLMs**, **time-series foundation models** (Chronos / Chronos-2), **learned dynamics
+models** (Neural ODE, HNN, LNN), and **classical integrators** (Euler, RK4, symplectic)
+— and, crucially, score every family on the **same out-of-sample held-out trajectories**.
 
-## Quickstart
+📄 **Paper:** [`paper/neurips_workshop/DoublePendulum.pdf`](paper/neurips_workshop/DoublePendulum.pdf)
+(NeurIPS workshop manuscript; LaTeX source in the same folder).
+
+## Headline result (out-of-sample, reliability-adjusted)
+
+Mean absolute angle error (rad) on the shared held-out set (180 held-out trajectories ×
+horizons {1, 10}s; failed/missing cells scored at the random-guess baseline π/2; 95%
+bootstrap CIs).
+
+| # | Model | Err | Family |
+|---|-------|----:|--------|
+| – | rk4 *(oracle)* | 0.059 | numerical |
+| 1 | symplectic | 0.205 | numerical |
+| 2 | euler | 0.405 | numerical |
+| **3** | **kimi-k2.6** | **0.538** | **LLM** |
+| 4 | chronos-2 (multi) | 0.684 | time-series |
+| 5 | chronos-2 (uni) | 0.697 | time-series |
+| 6 | neural-ode-rollout-mixed | 0.844 | learned |
+| 7 | neural-ode-rollout | 0.870 | learned |
+| 8 | grok-4-1-fast-reasoning | 0.881 | LLM |
+| … | … | … | … |
+| 14 | lnn | 1.421 | learned |
+
+## Key findings
+
+- **In-sample evaluation of learned dynamics models is badly optimistic.** Scored on
+  their own training trajectories the learned models look strong (~0.26 rad); on a shared
+  *held-out* set their error roughly **triples** (0.84–1.06) and they fall **below** a
+  zero-shot time-series model and a zero-shot LLM.
+- **On a level out-of-sample field, a frontier LLM (kimi) is the best non-numerical
+  forecaster** — ahead of the time-series models and every learned model. Classical
+  integrators remain unbeaten.
+- **The training objective generalises; the recipe does not.** Rollout loss beats
+  derivative-matching (paired, $p_{\text{Holm}}=1.6\times10^{-7}$), but the in-sample
+  "mixed-$k$ wins" result is a **statistical null** out of sample.
+- **No in-context system identification.** A confound-free, matched-constant experiment
+  plus a direct inference probe show LLMs do **not** recover hidden physical constants —
+  they fall back on Earth-standard priors.
+- **Reliability is a first-class axis.** Scoring abstentions (instead of averaging only
+  over answered cells) reorders the board and exposes brittle models.
+
+Full numbers, CIs, and significance tests: [`results/summary_llm/`](results/summary_llm)
+(`unified_leaderboard.md`, `llm_summary.md`) and [`results/summary_boot/`](results/summary_boot).
+
+## Repository layout
+
+```
+bench/                 # library
+  simulator.py         # k-pendulum dynamics + Euler/RK4/leapfrog integrators
+  metrics.py           # angle/coord/energy + predictability-horizon helpers
+  prompts.py, rendering.py, schema.py, export.py, runner.py
+  models/
+    numerical.py       # Euler / RK4 / symplectic
+    azure_llm.py       # OpenAI-compatible LLM client
+    ts_local.py        # local Chronos / Chronos-2 (uni + multivariate)
+    timeseries.py      # Azure-hosted time-series client
+    learned.py         # Neural ODE / HNN / LNN (trained)
+scripts/
+  generate_dataset.py  run_eval.py  aggregate.py  train_learned.py
+  analyze_divergence.py        # predictability horizon
+  analyze_system_id.py         # system-identification gap
+  analyze_ts_significance.py   # Chronos uni-vs-multi paired test
+  analyze_boot_cis.py          # per-model CIs + paired contrasts
+  export_heldout.py            # compact shared held-out eval spec
+config.yaml            # main grid; config.boot.yaml / config.tsboot.yaml for sub-studies
+paper/neurips_workshop/   # main.tex, references.bib, DoublePendulum.pdf
+results/                  # summaries + trained weights (raw checkpoints via Release)
+```
+
+## Reproduce
 
 ```bash
+# 1. Environment
+python -m venv .venv && . .venv/Scripts/activate    # (or .venv/bin/activate on Unix)
 pip install -r requirements.txt
-cp .env.example .env             # then fill in AZURE_AI_FOUNDRY_KEY / endpoint
 
-# 1. Generate the ground-truth dataset (deterministic from config.yaml seed)
-python scripts/generate_dataset.py                   # or --smoke for 1/cell
+# 2. Ground-truth dataset (deterministic from the config seed)
+python scripts/generate_dataset.py --config config.yaml
 
-# 2. Run the evaluation (resumable; re-running skips completed cells)
-python scripts/run_eval.py                           # all models
-python scripts/run_eval.py --models rk4 euler        # baselines only
-python scripts/run_eval.py --smoke                   # tiny smoke run
+# 3. Train the learned dynamics models (CUDA GPU recommended for the LNN)
+python scripts/train_learned.py --models neural_ode hnn lnn
+python scripts/train_learned.py --models neural_ode --rollout-ks 10 50   # mixed-k rollout
 
-# 3. Aggregate per-cell checkpoints into a leaderboard
-python scripts/aggregate.py
+# 4. Evaluate (numerical / learned / local time-series are free; LLMs need API keys)
+cp .env.example .env          # then add your OpenAI-compatible key for the LLM runs
+python scripts/run_eval.py --config config.yaml
+
+# 5. Aggregate + analyses (CIs, predictability horizon, system-ID, significance)
+python scripts/aggregate.py --config config.yaml
+python scripts/analyze_boot_cis.py
 ```
 
-Outputs land in `results/`:
+**Out-of-sample protocol.** Learned models are trained on one seed and evaluated on a
+disjoint held-out seed; `scripts/export_heldout.py` produces the compact
+`results/heldout_llm_eval_set.json` so the LLM side (run on a separate machine) scores the
+*identical* trajectories, keyed by `movement_id`.
 
-```
-results/
-  dataset/          # ground-truth trajectories (JSON; CSV with --csv)
-  checkpoints/      # one JSON per (model x cell x trajectory) — resume safe
-  summary/          # results_long.csv + leaderboard.csv / .json
-  renders/          # (reserved)
-```
+**Data release.** The committed `results/` holds the summaries, trained weights
+(`learned_models/*.pt`), and the held-out spec. The full per-cell checkpoints and raw
+datasets (~50k files) are attached as a GitHub **Release** asset to keep the repo lean.
 
-## What the runner does
-
-For every cell in the Cartesian product
-**model × k ∈ {1,2,3} × regime × modality × horizon × prompting × trajectory**:
-
-1. Pull the ground-truth trajectory from `results/dataset/`.
-2. Build a prompt (text-only, image, or image+text).
-3. Call the predictor (Azure model, or a local integrator).
-4. Parse the JSON answer, compute all SPEC metrics against the true state
-   at `t=horizon`.
-5. Write a single JSON checkpoint to `results/checkpoints/`. Re-running the
-   script skips any cell whose checkpoint already exists.
-
-Across models, eval runs concurrently. Each Azure predictor holds its own
-semaphore (`concurrency:` in config), so per-model rate limits are
-independent.
-
-## Configuration (`config.yaml`)
-
-- `dataset.trajectories_per_cell`: how many trajectories per (k, regime). 20
-  is a reasonable starting point; the cell count scales linearly.
-- `regimes`: physics constants for `normal`, `changed_disclosed`,
-  `changed_hidden`. The first two reveal the constants to the model; the
-  third does not (the prompt explicitly tells the model they are hidden).
-- `horizons_seconds`: [0.01, 1.0, 10.0, 60.0] per SPEC.
-- `modalities`: `coords`, `images`, `images_coords`.
-- `prompting`: `no_cot`, `cot` (CoT wraps the final answer in
-  `<answer>{...}</answer>` tags; see `bench/prompts.py`).
-- `models`: each entry has `kind` ∈ {`llm`, `numerical`, `timeseries`,
-  `learned`} and is wired to the matching adapter.
-
-## Azure AI Foundry setup
-
-1. Create a Foundry project, deploy your five chosen models:
-   `gpt-5.5`, `kimi-k2.6`, `deepseek-v4`, `qwen`, `grok-4-fast-reasoning`.
-2. Copy the project endpoint (looks like
-   `https://YOUR-RESOURCE.services.ai.azure.com/models`) and an API key into
-   `.env`.
-3. Make sure the `deployment:` value in `config.yaml` matches what you
-   named each deployment in the Azure portal. Change `vision: true/false`
-   if your specific deployment is/isn't multimodal.
-
-Per-model overrides are supported via env vars
-(`AZURE_<UPPER_NAME>_ENDPOINT` / `AZURE_<UPPER_NAME>_KEY`) — useful if a
-model lives in a different region/project.
-
-## Metrics
-
-All metrics from SPEC are computed per cell and saved alongside the
-prediction (`metrics` field in each checkpoint):
-
-| Metric | Symbol |
-|---|---|
-| Coordinate error per bob | `coord_error_per_bob` |
-| Mean coordinate error    | `coord_error_mean` |
-| Max coordinate error     | `coord_error_max` |
-| Angle error per link     | `angle_error_per_link` |
-| Mean angle error         | `angle_error_mean` |
-| ω sign-match per link    | `sign_match_per_link` |
-| \|Δω\| per link          | `omega_mag_error` |
-| ΔKE / ΔPE / ΔE_total     | `delta_KE`, `delta_PE`, `delta_E` |
-
-`long_run_deviance` and `time_to_divergence` are available in
-`bench/metrics.py` and are computed over **trajectories**, so they require
-that the predictor emit a full trajectory rather than a single end-state;
-wire these in via a future "rollout" predictor type if needed for the
-learned-model comparison.
-
-## Time-series foundation models (Chronos / TimesFM / Moirai)
-
-These are wired up as real Azure adapters but need to be **deployed
-separately** from the chat models. Each one becomes an Azure ML real-time
-endpoint with its own scoring URI + API key:
-
-1. In Azure AI Foundry / Azure ML Studio, deploy each model from the
-   catalog (Chronos: `amazon/chronos-t5-large` or `chronos-bolt-base`;
-   TimesFM: `google/timesfm-1.0-200m`; Moirai: `Salesforce/moirai-1.0-R-large`).
-2. After deployment, copy the **REST endpoint** (scoring URI) and the
-   **primary key** for each.
-3. Paste them into `.env` as `AZURE_CHRONOS_ENDPOINT` / `AZURE_CHRONOS_KEY`
-   (and the same pattern for TIMESFM, MOIRAI).
-4. Run the eval normally — the time-series adapter handles request shaping
-   per-variant and parses each model's response format.
-
-The adapter slices the negative-time **pre-context window** (configurable
-via `dataset.pre_context_seconds` in `config.yaml`, default 10s) from each
-ground-truth trajectory and feeds it as history. Resampling is adaptive:
-context length is capped at `max_context_length` and prediction length at
-`max_prediction_length` per the model's tolerance.
-
-If your AzureML deployment uses a custom scoring script with a non-standard
-request body, edit `_build_<variant>_body` and `_parse_<variant>` in
-`bench/models/timeseries.py`.
-
-## Learned dynamics models (stubs)
-
-- `bench/models/learned.py` — Neural ODE / HNN / LNN. Train these on the
-  generated dataset, then point `checkpoint:` at the saved weights.
-
-## Files
-
-```
-bench/
-  simulator.py     # k-pendulum dynamics + Euler/RK4/leapfrog integrators
-  rendering.py     # PIL renderer for VLM image prompts
-  metrics.py       # all SPEC metrics
-  prompts.py       # LLM/VLM prompt templates + response parser
-  schema.py        # dataclasses (Trajectory, EvalCell, Prediction)
-  export.py        # JSON/CSV trajectory writers
-  runner.py        # async parallel runner with per-cell checkpoints
-  models/
-    base.py        # Predictor protocol
-    numerical.py   # Euler / RK4 / leapfrog
-    azure_llm.py   # Azure AI Foundry chat client (LLM + VLM)
-    timeseries.py  # Azure ML real-time endpoint client (Chronos/TimesFM/Moirai)
-    learned.py     # stub
-scripts/
-  generate_dataset.py
-  run_eval.py
-  aggregate.py
-config.yaml
-.env.example
-DoublePendulum.py  # original interactive visualizer (kept for sanity checks)
-SPEC.md            # research proposal
-```
-
-## Smoke test (no API key needed)
-
+A no-API-key smoke test:
 ```bash
 python scripts/generate_dataset.py --smoke
 python scripts/run_eval.py --smoke --models rk4 euler symplectic
 python scripts/aggregate.py
 ```
 
-This validates the simulator, integrators, runner, and aggregation pipeline
-without making any API calls.
+## Authors
+
+**Sriman Narayan Kandi** (lead, corresponding — kandisriman@gmail.com),
+Trishant Srinivasan, Shrithik Shahapure.
+
+## Citation
+
+```bibtex
+@inproceedings{kandi2026forecastingchaos,
+  title  = {Forecasting Chaos Across Model Families: A Controlled Benchmark of LLMs,
+            Time-Series Foundation Models, Learned Dynamics, and Numerical Integrators
+            on k-Pendulum Systems},
+  author = {Kandi, Sriman Narayan and Srinivasan, Trishant and Shahapure, Shrithik},
+  year   = {2026}
+}
+```
