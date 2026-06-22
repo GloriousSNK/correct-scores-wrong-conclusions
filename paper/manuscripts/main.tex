@@ -103,11 +103,11 @@ first-class evaluation concerns rather than footnotes.
 
 \paragraph{Contributions.}
 \begin{enumerate}[leftmargin=1.4em,itemsep=2pt,topsep=2pt]
-\item A unified, reproducible cross-family benchmark (LLMs, a time-series
-foundation model, learned dynamics, and integrators) on $k$-pendulum forecasting,
-in which all families are scored on the \emph{same out-of-sample held-out
-trajectories} and a \textbf{reliability-adjusted metric} scores abstentions instead
-of discarding them (\S\ref{sec:metrics}, \S\ref{sec:reliability}).
+\item A \textbf{reusable, cross-family evaluation protocol} (LLMs, a time-series
+foundation model, learned dynamics, and integrators) in which all families are scored on
+the \emph{same out-of-sample held-out trajectories} and a \textbf{reliability-adjusted
+metric} scores abstentions instead of discarding them---instantiated on the $k$-pendulum
+as a controlled testbed (\S\ref{sec:metrics}, \S\ref{sec:reliability}).
 \item An \textbf{out-of-sample leaderboard that inverts the in-sample story}: tested
 off their training trajectories the learned models degrade substantially ($\sim$0.26 $\to$
 0.84--1.06\,rad), and among the models evaluated the strongest black-box forecaster is a
@@ -152,6 +152,18 @@ Our task differs: it demands quantitative trajectory prediction of a chaotic
 system, not qualitative or symbolic reasoning.
 
 \section{Benchmark Design}
+
+\paragraph{Why the $k$-pendulum?} We treat the $k$-link pendulum not as the object of
+study but as a \emph{controlled instrument} for measuring evaluation methodology. Four
+properties make it uniquely suited. It offers a \emph{tunable} chaos axis---integrable at
+$k{=}1$, chaotic with a positive Lyapunov exponent at $k{\ge}2$---that a single attractor
+cannot provide; its ground truth is computable to arbitrary precision; its governing
+equations are \emph{known}, supplying both an oracle ceiling and physics-aware baselines;
+and its physical constants are freely \emph{controllable}, which lets us hide parameters
+and run the confound-free system-identification test of \S\ref{sec:sysid}. A less
+structured chaotic system would confound the very effects we set out to isolate, so the
+single, maximally-controlled substrate is a deliberate design choice rather than a
+limitation of scope.
 
 \subsection{Task and systems}
 Given the state $\mathbf{s}_0=(\theta_1,\dots,\theta_k,\omega_1,\dots,\omega_k)\in
@@ -726,6 +738,18 @@ model trained on the system forecasts for free at $100\%$ reliability and only m
 higher error. We report cost beside error so the trade-off is explicit rather than
 buried.
 
+\paragraph{Scope and generality.} Our quantitative rankings are specific to this substrate
+and horizon; we do not claim a particular \emph{model order} transfers unchanged to Lorenz,
+driven-pendulum, or fluid systems. What \emph{does} transfer is the methodology, because it
+is a property of the evaluation rather than of the pendulum: in-sample scoring of a fitted
+simulator is optimistic on \emph{any} system whose train and test trajectories overlap; the
+reliability-adjusted metric and the matched, confound-free control for inferred-versus-disclosed
+parameters are system-agnostic; and the cross-family, out-of-sample leaderboard is a reusable
+protocol. The harness is substrate-parametrised (the dynamics enter only through the
+ground-truth integrator and the known equations of motion), so porting it to other chaotic
+systems is mechanical and is the natural next step---one we expect to change the numbers but
+not the methodological conclusions.
+
 \section{Limitations}
 The out-of-sample leaderboard aggregates $180$ held-out trajectories ($60$ per regime)
 with bootstrap confidence intervals, and the powered sub-studies (objective,
@@ -739,14 +763,17 @@ $k$-pendulum family and then tested on \emph{held-out} trajectories of it, where
 LLMs and Chronos are zero-shot---fair on the shared grid, but not a like-for-like
 training regime. The pendulum equations are ubiquitous in training corpora, so
 contamination cannot be excluded; the hidden-constants regime partially mitigates this
-but does not eliminate it. Finally, the study is a single mechanical substrate and
-three LLMs; generality across other chaotic systems (Lorenz, driven pendulum) and a
-broader model roster (e.g.\ Qwen-VL, TimesFM, Moirai) is future work.
+but does not eliminate it. Finally, we deliberately isolate the evaluation methodology on
+a single, maximally-controlled substrate and three LLMs: this is what lets the
+methodological effects be measured cleanly (\S\ref{sec:sysid}), but it does mean the
+\emph{numerical} results are demonstrated on one system. Replicating them on other chaotic
+systems (Lorenz, driven pendulum) and a broader model roster (e.g.\ Qwen-VL, TimesFM,
+Moirai) through the same substrate-parametrised harness is the natural next step.
 
 \section{Conclusion}
-On a controlled $k$-pendulum benchmark spanning four model families under identical
+On a controlled $k$-pendulum testbed spanning four model families under identical
 conditions and---crucially---on the \emph{same out-of-sample held-out trajectories},
-the headline is cautionary. In-sample evaluation of learned dynamics models is badly
+the headline is methodological. In-sample evaluation of learned dynamics models is badly
 optimistic: scored off their training data the learned models triple their error and
 drop behind both a zero-shot time-series model and a frontier LLM, so that in this
 benchmark the strongest black-box forecaster is a frontier LLM (\texttt{kimi}), while
