@@ -227,7 +227,13 @@ constants in every regime---including \texttt{changed\_hidden}, since they encod
 constants as network inputs---whereas the LLMs are told the constants only when
 disclosed. Despite both advantages, the learned models and Chronos are beaten
 out-of-sample by an LLM that gets neither history nor hidden constants
-(\S\ref{sec:reliability}).
+(\S\ref{sec:reliability}). A countervailing asymmetry, however, runs in the
+\emph{opposite} direction and is larger in magnitude: the LLMs are frontier-scale models
+with enormous parameter counts and training budgets, whereas the learned dynamics models
+are deliberately small (a $256$-wide, $3$-layer MLP trained on a single $8$\,GB GPU;
+Appendix~B). Our comparison therefore contrasts off-the-shelf frontier models with small,
+\emph{accessible} learned simulators; how a substantially larger physics-informed network
+would fare is an open question we do not settle here.
 
 We accordingly group methods into \textbf{known-physics} (RK4, Euler, symplectic ---
 given the exact equations and constants) and \textbf{black-box / data-driven} (LLMs,
