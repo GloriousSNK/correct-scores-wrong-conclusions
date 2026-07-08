@@ -1,0 +1,11 @@
+model,family,rel_energy_drift,stable_frac
+rk4,numerical,6.2710452637249104e-06,1.0
+symplectic,numerical,0.08693200338765891,1.0
+euler,numerical,0.6874788681473207,1.0
+neural-ode,node,6.595340897451094,1.0
+neural-ode-rollout,node,1.1070638821171217,1.0
+neural-ode-rollout-mixed,node,1.0201085016636804,1.0
+hnn,hnn,5.955445518762765,1.0
+hnn-rollout,hnn,2.8718142480700655,1.0
+hnn-rollout-mixed,hnn,2.8844564898037808,1.0
+lnn,lnn,5.771219041332996,0.26666666666666666
