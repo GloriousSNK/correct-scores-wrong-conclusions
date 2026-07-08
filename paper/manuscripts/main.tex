@@ -664,73 +664,48 @@ $+0.005$\,rad overall, with no significant effect at any $k$ or at horizons $1$\
 $10$\,s; the per-$k$ trend at $n{=}1$ (multivariate appearing to help most at $k{=}3$) goes
 to zero at $n{=}720$. A nominal overall $p{=}0.025$ is driven by a sub-$0.01$\,rad bias at
 the $0.01$\,s horizon and does not survive Holm correction. We report a null result:
-cross-channel coupling gives no measurable benefit for time-series forecasting of this
-system. On the shared out-of-sample grid the Chronos family is at $0.68$--$0.70$\,rad, below
-every learned model and above only the numerical integrators and \texttt{kimi}
-(Table~\ref{tab:overall}).
+cross-channel coupling gives no measurable benefit for time-series forecasting of this system.
 
 \section{Discussion}
-\paragraph{In-sample evaluation.} When the learned dynamics models are scored on the same
-held-out trajectories as the other families, rather than on their training data, their error
-increases by approximately a factor of three (${\sim}0.26\to0.84$--$1.06$\,rad) and falls
-below a zero-shot time-series model and a zero-shot LLM. The conclusion that a small fitted
-model outperforms general-purpose forecasters, which an in-sample leaderboard supports, does
-not hold out of sample. For chaotic systems, a learned simulator should be reported on
-trajectories it was not trained on. Out of sample, the lowest black-box error in our
-benchmark is obtained by an LLM (\texttt{kimi}); among the learned models, what transfers is
-the rollout objective rather than the mixed-$k$ variant.
+\paragraph{In-sample evaluation.} Scored on held-out rather than training trajectories, the
+learned dynamics models triple their error and fall below a zero-shot time-series model, a
+zero-shot LLM, and simple baselines. The ``small fitted model beats general-purpose
+forecasters'' conclusion an in-sample leaderboard invites does not survive; a learned
+simulator must be reported on trajectories it never saw. What transfers among the learned
+models is the rollout objective, not the architecture or the mixed-$k$ recipe.
 
-\paragraph{Reliability.} Averaging over answered cells alone ranks the least reliable models
-higher. Scoring abstentions at $\pi/2$ places \texttt{grok} ($82\%$ answered) at rank $8$ and
-the LNN ($45\%$) last. Chain-of-thought does not change this: paired CoT-vs-direct
-differences are not significant for any LLM (\texttt{kimi} is slightly higher with CoT). A
-fixed budget of reasoning tokens does not substitute for the sequential integration the task
-requires.
+\paragraph{Reliability.} Scoring abstentions at $\pi/2$, rather than averaging over answered
+cells, is what places \texttt{grok} and the LNN low; chain-of-thought does not help (paired
+CoT-vs-direct differences are insignificant). A fixed budget of reasoning tokens does not
+substitute for sequential integration.
 
-\paragraph{System identification.} The ``LLMs do better when constants are hidden'' effect is
-a difficulty confound. In a matched experiment that toggles only disclosure on identical
-trajectories, hiding the constants increases error ($+0.069$\,rad overall; $+0.297$ at
-$k{=}1$), and the inference probe shows the models do not recover the constants ($g$ MAE
-${\sim}1.8$--$2.1$ against true $g\in[1.6,12]$); they default to Earth-standard values. Under
-the conditions of our benchmark we find little evidence that the models infer hidden
-parameters, and regime contrasts should not be read as inference without a matched control.
+\paragraph{System identification.} The apparent ``hidden helps'' effect is a difficulty
+confound: on matched trajectories, hiding the constants slightly increases error, and the
+probe shows the models default to Earth-standard values rather than inferring the true ones.
+We therefore find little evidence of in-context system identification, and caution against
+reading regime contrasts as inference without a matched control.
 
-\paragraph{Cost.} The out-of-sample LLM evaluation cost \$110 in API fees ($3{,}960$ cells,
-${\sim}\$0.03$ per forecast) and is the only family billed per query; the numerical and
-time-series models are free at inference, and the learned models are free after a one-time
-training cost (minutes to a few hours on one $8$\,GB GPU). The lowest-error black-box method
-is also the most expensive, while a model trained on the system runs at $100\%$ reliability
-and modestly higher error.
-
-\paragraph{Scope.} The quantitative rankings are specific to this system and horizon; we do
-not claim that a particular model order transfers to Lorenz, driven-pendulum, or fluid
-systems. The protocol does transfer: in-sample scoring of a fitted simulator is optimistic on
-any system whose train and test trajectories overlap, and the reliability-adjusted metric and
-the matched disclosure control are system-agnostic. We expect the resulting ranking to be
-system-dependent, since which models abstain or destabilize, and hence how the reliability
-adjustment reorders them, may differ on another system. The harness is substrate-parametrized
-(the dynamics enter only through the ground-truth integrator and the known equations), so
-applying it to other chaotic systems is a direct extension.
+\paragraph{Cost and scope.} The LLM evaluation is the only family billed per query (\$110,
+${\sim}\$0.03$/forecast); the others are free at inference, so the lowest-error black-box
+method is also the most expensive. The quantitative ranking is specific to this system, but
+the protocol is not---in-sample optimism, reliability-adjusted scoring, and the matched
+disclosure control are system-agnostic, and the harness is substrate-parametrized---so
+applying it to other chaotic systems is a direct extension, one we expect to change the
+ranking but not the methodology.
 
 \section{Limitations}
 \label{sec:limitations}
-The leaderboard aggregates $180$ held-out trajectories ($60$ per regime) with bootstrap
-confidence intervals, and the powered sub-studies (objective, multivariate, system-ID) use
-$n{=}720$--$900$ paired samples; all trajectories derive from a single held-out seed, and
-additional seeds would tighten the error bars. Paired tests are Holm-corrected within each
+All results use a single held-out seed; additional seeds would tighten the error bars.
+Paired tests are Holm-corrected within each
 family (objective, multivariate, system-ID) but not across the paper, so marginal
 results---for example the overall system-identification gap
-($p_{\mathrm{Holm}}{=}0.034$)---should be read as suggestive. Predictions are single-endpoint rather than
-full-trajectory; a full-rollout protocol would allow the predictability horizon to be
-measured directly rather than inferred from four horizons. The metric is a deterministic
-pointwise error; because a chaotic forecast is properly a distribution that broadens at the
-Lyapunov rate, we report energy conservation (\S\ref{sec:energy}), but fuller probabilistic scoring (e.g.,
-CRPS/ensembles, as used in numerical weather prediction), attractor-distribution measures, and
-a version under initial-condition noise---where error is dominated by amplification of the
-state estimate---are left to future work. The
-comparison is structurally
-asymmetric: the learned models are trained on the $k$-pendulum family and tested on held-out
-trajectories of it, whereas the LLMs and Chronos are zero-shot. The learned models are trained
+($p_{\mathrm{Holm}}{=}0.034$)---should be read as suggestive. Predictions are single-endpoint;
+a full-rollout protocol would let the predictability horizon be measured directly. The metric
+is pointwise; we report energy conservation (\S\ref{sec:energy}) but leave fuller probabilistic
+(CRPS/ensemble) and attractor-distribution scoring, and a noisy-initial-condition version, to
+future work. The comparison is structurally asymmetric: the learned models are trained on the
+$k$-pendulum family and tested on held-out trajectories of it, whereas the LLMs and Chronos
+are zero-shot. The learned models are trained
 on only nine trajectories (one per (k, regime) cell), a small budget for a chaotic system; the
 finding that they do not exceed simple baselines is specific to this training budget, and a
 data- or capacity-scaling study is needed to separate architecture from data limitations. The
@@ -745,18 +720,14 @@ a broader model set (e.g.\ Qwen-VL, TimesFM, Moirai) through the same harness is
 future work.
 
 \section{Conclusion}
-On a controlled $k$-pendulum benchmark spanning four model families, evaluated on the same
-out-of-sample held-out trajectories, in-sample evaluation of learned dynamics models is
-optimistic: scored off their training data the learned models increase their error by
-approximately a factor of three, rank below both a zero-shot time-series model and a
-zero-shot LLM, and do not exceed simple baselines (persistence, nearest-neighbor analog
-lookup), so that the lowest black-box error in our benchmark is obtained by an LLM
-(\texttt{kimi}), while the numerical integrators form the ceiling when the equations are
-known. The objective, not the architecture, transfers (rollout loss is lower than derivative
-matching; mixed-$k$ shows no out-of-sample effect). Reliability-adjusted scoring and
-chaos-appropriate metrics change the leaderboard relative to a naive ranking, and a matched
-experiment with a direct inference probe finds little evidence of in-context system
-identification.
+On a controlled $k$-pendulum benchmark evaluated on shared out-of-sample trajectories,
+in-sample evaluation of learned dynamics is optimistic: off their training data the learned
+models triple their error and do not exceed simple baselines, so the lowest black-box error
+is an LLM (\texttt{kimi}) while the numerical integrators remain the ceiling. The training
+objective, not the architecture, transfers; reliability-adjusted scoring and a matched,
+confound-free control overturn the naive reading and find little evidence of in-context
+system identification. The durable contribution is the protocol, not the version-specific
+ranking.
 
 \paragraph{Reproducibility.} Code, prompts (Appendix~A), trained weights, the shared held-out
 specification, and per-cell checkpoints are released with the benchmark. Training
