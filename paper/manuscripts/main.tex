@@ -68,8 +68,8 @@ protocol, and a reliability-adjusted metric that assigns a fixed error to refusa
 parse failures rather than discarding them. Out of sample, the learned dynamics models
 increase their error by approximately a factor of three relative to in-sample evaluation
 ($\sim$0.26 to 0.84--1.06\,rad) and rank below both a zero-shot time-series model and a
-zero-shot LLM, and do not clear trivial baselines such as persistence and a nearest-neighbor
-analog lookup. Among the black-box methods evaluated, the lowest error is obtained by an
+zero-shot LLM, and do not clear simple baselines---persistence and a nearest-neighbor analog
+lookup---built from the same data. Among the black-box methods evaluated, the lowest error is obtained by an
 LLM (\texttt{kimi}, $0.538$\,rad), while the known-physics integrators, which are given the
 exact equations, form a ceiling by construction. The training objective affects
 out-of-sample error (rollout loss is lower than derivative matching,
@@ -104,7 +104,7 @@ same out-of-sample held-out trajectories, with a reliability-adjusted metric tha
 fixed error to abstentions rather than discarding them
 (\S\ref{sec:metrics}, \S\ref{sec:reliability}).
 \item An \textbf{out-of-sample leaderboard}: tested off their training trajectories the
-learned models reach 0.84--1.06\,rad (from $\sim$0.26 in-sample) and do not clear trivial
+learned models reach 0.84--1.06\,rad (from $\sim$0.26 in-sample) and do not clear simple
 baselines (persistence, nearest-neighbor analog lookup), while among the models evaluated the
 lowest black-box error is obtained by an LLM (\texttt{kimi}, 0.538\,rad). Rollout loss reduces
 error relative to derivative matching, while mixed-$k$ rollout shows no significant
@@ -290,20 +290,25 @@ after $k$ Euler steps, with gradients through the unroll). We also use mixed-$k$
 which trains on several window lengths jointly (Neural~ODE: $k\in\{10,50\}$; HNN:
 $k\in\{5,20\}$). The LNN's loss requires second-order autodifferentiation, which Apple's MPS
 backend does not run; we train it at full scale ($67$k samples, hidden 256) on a CUDA GPU.
+All learned models are trained on the same nine trajectories---one per (k, regime) cell
+(Appendix~B)---a deliberately small training budget whose effect we return to in the
+Limitations.
 
 \paragraph{Integrators.} Euler, RK4, and St\"ormer--Verlet (symplectic) at $\Delta
 t{=}0.01$\,s using the exact equations of motion; their error is from discretization alone.
 RK4 is the data-generating process and serves as an oracle ceiling rather than an independent
 competitor.
 
-\paragraph{Baselines.} We add four trivial floors, evaluated on the same grid.
-\emph{Persistence} predicts $\theta_T{=}\theta_0$; \emph{constant-velocity} predicts
+\paragraph{Baselines.} We add four simple baselines as reference floors, evaluated on the
+same grid; persistence and constant-velocity are trivial, while the linearized and
+nearest-neighbor baselines are stronger references (nearest-neighbor is a non-parametric
+analog forecast, a method used operationally in weather prediction). \emph{Persistence}
+predicts $\theta_T{=}\theta_0$; \emph{constant-velocity} predicts
 $\theta_T{=}\theta_0{+}\omega_0 T$; \emph{linearized} integrates the small-angle linearization
 about the downward equilibrium (matrix exponential of the numerical Jacobian of the dynamics,
-using the cell's true constants); and \emph{nearest-neighbor} is an analog forecast that
-returns the state reached $T$ later by the closest state (angle-wrapped distance) in the
-matching (k, regime) training trajectory---a memorization floor built from the same data the
-learned models were trained on.
+using the cell's true constants); and \emph{nearest-neighbor} returns the state reached $T$
+later by the closest state (angle-wrapped distance) in the matching (k, regime) training
+trajectory---a lookup on the same data the learned models were trained on.
 
 \section{Results}
 \subsection{Out-of-sample leaderboard}
@@ -314,21 +319,24 @@ reliability-adjusted metric so that an unanswered or missing cell is scored at $
 model is scored on the same grid; the Answered column gives the fraction of cells for which a
 model returned a valid prediction (only the LNN, whose autograd-ODE integration diverges to
 NaN on $55\%$ of cells, falls below $100\%$). LLMs are scored on their direct-prompt
-forecasts. Confidence intervals are $95\%$ paired bootstrap ($B{=}10^4$).
+forecasts. Confidence intervals are $95\%$ paired bootstrap over trajectories ($B{=}10^4$);
+for the LLMs they reflect variation across trajectories only, not per-call sampling, since we
+take a single temperature-$0$ sample per cell and hosted models are not perfectly
+deterministic.
 
 The classical integrators have the lowest error: RK4 (the data-generating process, hence an
 oracle ceiling) at $0.059$, symplectic at $0.205$, Euler at $0.405$. Among the black-box
 methods evaluated, the lowest error is obtained by \texttt{kimi} ($0.538$\,rad, $99\%$
-answered), below both Chronos modes and all learned dynamics models. The four trivial
-baselines locate the floor. \texttt{kimi} is below every baseline with a non-overlapping
+answered), below both Chronos modes and all learned dynamics models. The four baselines
+locate the floor. \texttt{kimi} is below every baseline with a non-overlapping
 confidence interval (the closest, nearest-neighbor, is $0.725$), so its standing is not an
 artifact of the scoring; both Chronos modes are also below the best baseline in point
 estimate. The learned dynamics models are not: in point estimates the nearest-neighbor analog
 lookup ($0.725$) is below \emph{every} learned model, the linearized-pendulum baseline
 ($0.855$) is below all but the best, and persistence ($1.004$) is below the plain Neural~ODE,
 HNN, and LNN, with intervals overlapping only for the closest comparisons. Out of sample the
-learned models therefore do not clear trivial floors built from the same data they were
-trained on. They score $\sim$0.26\,rad under in-sample evaluation and reach $0.84$--$1.06$\,rad
+learned models therefore do not clear these simple baselines---in several cases not even
+persistence---despite the baselines using the same training data. They score $\sim$0.26\,rad under in-sample evaluation and reach $0.84$--$1.06$\,rad
 here (the lowest, mixed-$k$ rollout Neural~ODE, ranks 7th); this factor of approximately three
 indicates that their in-sample strength on this benchmark is largely attributable to
 evaluation on their training trajectories.
@@ -338,7 +346,7 @@ evaluation on their training trajectories.
 \caption{Out-of-sample leaderboard on the shared held-out set ($360$ cells, horizons
 $\{1,10\}$\,s). Reliability-adjusted mean angle error (rad): unanswered or missing cells
 scored at $\pi/2$; $95\%$ bootstrap CI. RK4 is the data-generating process, hence an oracle
-ceiling rather than a competitor. Methods new in this work are marked $\dagger$; trivial
+ceiling rather than a competitor. Methods new in this work are marked $\dagger$; simple
 baselines (floors) are marked $\ddagger$.}\label{tab:overall}
 \begin{tabular}{rlcccl}
 \toprule
@@ -659,7 +667,10 @@ applying it to other chaotic systems is a direct extension.
 The leaderboard aggregates $180$ held-out trajectories ($60$ per regime) with bootstrap
 confidence intervals, and the powered sub-studies (objective, multivariate, system-ID) use
 $n{=}720$--$900$ paired samples; all trajectories derive from a single held-out seed, and
-additional seeds would tighten the error bars. Predictions are single-endpoint rather than
+additional seeds would tighten the error bars. Paired tests are Holm-corrected within each
+family (objective, multivariate, system-ID) but not across the paper, so marginal
+results---for example the overall system-identification gap
+($p_{\mathrm{Holm}}{=}0.034$)---should be read as suggestive. Predictions are single-endpoint rather than
 full-trajectory; a full-rollout protocol would allow the predictability horizon to be
 measured directly rather than inferred from four horizons. The metric is a deterministic
 pointwise error; because a chaotic forecast is properly a distribution that broadens at the
@@ -669,9 +680,12 @@ complementary evaluations that we do not report, and a version under initial-con
 where error is dominated by amplification of the state estimate, is a further extension. The
 comparison is structurally
 asymmetric: the learned models are trained on the $k$-pendulum family and tested on held-out
-trajectories of it, whereas the LLMs and Chronos are zero-shot. The pendulum equations are
-common in training corpora, so contamination cannot be excluded; the hidden-constants regime
-mitigates this only in part. Finally, the numerical results are demonstrated on a single
+trajectories of it, whereas the LLMs and Chronos are zero-shot. The learned models are trained
+on only nine trajectories (one per (k, regime) cell), a small budget for a chaotic system; the
+finding that they do not exceed simple baselines is specific to this training budget, and a
+data- or capacity-scaling study is needed to separate architecture from data limitations. The
+pendulum equations are common in training corpora, so contamination cannot be excluded; the
+hidden-constants regime mitigates this only in part. Finally, the numerical results are demonstrated on a single
 system and three LLMs; extending them to other chaotic systems (Lorenz, driven pendulum) and
 a broader model set (e.g.\ Qwen-VL, TimesFM, Moirai) through the same harness is left to
 future work.
@@ -681,7 +695,7 @@ On a controlled $k$-pendulum benchmark spanning four model families, evaluated o
 out-of-sample held-out trajectories, in-sample evaluation of learned dynamics models is
 optimistic: scored off their training data the learned models increase their error by
 approximately a factor of three, rank below both a zero-shot time-series model and a
-zero-shot LLM, and do not exceed trivial baselines (persistence, nearest-neighbor analog
+zero-shot LLM, and do not exceed simple baselines (persistence, nearest-neighbor analog
 lookup), so that the lowest black-box error in our benchmark is obtained by an LLM
 (\texttt{kimi}), while the numerical integrators form the ceiling when the equations are
 known. The objective, not the architecture, transfers (rollout loss is lower than derivative
@@ -695,9 +709,12 @@ specification, and per-cell checkpoints are released with the benchmark. Trainin
 trajectories use seed $42$; the held-out evaluation set uses a disjoint seed
 ($\texttt{20260620}$), $180$ trajectories ($60$ per regime). LLMs (\texttt{kimi-k2.6},
 \texttt{grok-4-1-fast-reasoning}, \texttt{deepseek-v4-pro}, via Azure AI Foundry, evaluated
-June~2026) are sampled once at temperature $0$. A cell is answered if it returns a parseable,
-finite prediction; otherwise it is assigned $\pi/2$. All local training and evaluation run on
-a single consumer GPU (8\,GB); no proprietary training data is used.
+June~2026) are sampled once at temperature $0$; hosted deployments may change over time and
+temperature-$0$ API sampling is not guaranteed to be reproducible, so the exact LLM numbers
+may not be reproducible from the API alone, although the protocol and all local (non-LLM)
+results are. A cell is answered if it returns a parseable, finite prediction; otherwise it is
+assigned $\pi/2$. All local training and evaluation run on a single consumer GPU (8\,GB); no
+proprietary training data is used.
 
 \section*{Author Contributions}
 S.N.K.\ (lead author, corresponding) designed the benchmark, led the evaluation harness and
@@ -762,7 +779,9 @@ rate, on a single NVIDIA GTX~1070~Ti (8\,GB). Mixed-$k$ rollout adds negligible 
 its cost is wall-clock (the HNN mixed-$k$ run is the most expensive at $\sim$6.7\,h because
 each unroll step recomputes $\nabla H$ via autograd). Chronos runs at inference only. The
 dataset has $67{,}491$ samples across $k\in\{1,2,3\}$ and three regimes, subsampled at
-$\Delta t{=}0.01$\,s from the $10^{-3}$\,s ground truth.
+$\Delta t{=}0.01$\,s from the $10^{-3}$\,s ground truth. These samples are drawn from
+\emph{nine} trajectories---one per (k, regime) cell---so, while the sample count is large, the
+number of distinct trajectories the learned models see is small.
 
 \section{Per-$k$ and per-regime breakdowns}
 \label{app:breakdown}
