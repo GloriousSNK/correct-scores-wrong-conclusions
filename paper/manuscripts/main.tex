@@ -381,7 +381,8 @@ answered cells, places them at ranks $8$ and $14$. Averaging over answered cells
 rank the least reliable models higher.
 
 \subsection{Behavior by horizon}
-Table~\ref{tab:horizon} reports out-of-sample error by horizon. At $1$\,s the ordering
+\label{sec:behavior}
+Out-of-sample error by horizon appears in Appendix~D (Table~\ref{tab:horizon}). At $1$\,s the ordering
 follows the leaderboard: the integrators are near-exact, \texttt{kimi} ($0.457$) has the
 lowest black-box error, and the learned models are at $0.76$--$0.97$. At $10$\,s all models
 are in the chaotic regime, and the ordering is stable: \texttt{kimi} ($0.619$) remains lowest
@@ -393,31 +394,7 @@ whereas every black-box family saturates near the chaotic noise floor by $1$\,s.
 $\{1,10\}$\,s window used for the leaderboard is the range over which the families remain
 separable.
 
-\begin{table}[tbp]
-\centering\small
-\caption{Out-of-sample mean angle error (rad) by horizon, reliability-adjusted, on the
-shared held-out grid (selected models). The cross-family comparison uses horizons
-$\{1,10\}$\,s.}\label{tab:horizon}
-\begin{tabular}{lcc}
-\toprule
-Model & 1\,s & 10\,s \\
-\midrule
-rk4 (oracle) & 0.000 & 0.118 \\
-symplectic & 0.042 & 0.368 \\
-euler & 0.067 & 0.743 \\
-kimi-k2.6 & 0.457 & 0.619 \\
-chronos2-multi & 0.591 & 0.777 \\
-chronos2-uni & 0.622 & 0.773 \\
-neural-ode-rollout-mixed & 0.779 & 0.908 \\
-neural-ode-rollout & 0.790 & 0.950 \\
-hnn-rollout & 0.758 & 1.085 \\
-grok-4-1-fast-reasoning & 0.905 & 0.857 \\
-neural-ode & 0.793 & 1.264 \\
-deepseek-v4-pro & 0.996 & 0.909 \\
-lnn (full-scale) & 1.335 & 1.508 \\
-\bottomrule
-\end{tabular}
-\end{table}
+% (Table tab:horizon relocated to Appendix D)
 
 \begin{figure}[tbp]
 \centering
@@ -563,7 +540,7 @@ neural-ode & learned & 4.346 & 100\% \\
 
 \subsection{Chaos-appropriate analysis}
 \label{sec:sysid}
-\paragraph{Predictability horizon.} Table~\ref{tab:predhorizon} reports the longest horizon
+\paragraph{Predictability horizon.} Appendix~D (Table~\ref{tab:predhorizon}) reports the longest horizon
 each model tracks contiguously below a threshold $\tau$, over the ladder
 $\{0.01,1,10,60\}$\,s available for the non-LLM models. Only the numerical integrators stay
 below strict thresholds past $1$\,s: RK4 tracks to $10$\,s at $\tau{=}0.25$ and $60$\,s at
@@ -575,29 +552,7 @@ $\{1,10\}$\,s, so their ladder is coarser; within it, only \texttt{kimi} is belo
 $0.5$\,rad at $1$\,s. Within our thresholds, no data-driven model exceeds the predictability
 horizon of the numerical integrators.
 
-\begin{table}[tbp]
-\centering\small
-\caption{Predictability horizon (s): longest horizon tracked contiguously below threshold
-$\tau$, on the shared out-of-sample set (ladder $\{0.01,1,10,60\}$\,s). Higher is
-better.}\label{tab:predhorizon}
-\begin{tabular}{lcccc}
-\toprule
-Model & $\tau{=}0.1$ & $0.25$ & $0.5$ & $1.0$ \\
-\midrule
-rk4 (oracle) & 1.0 & 10 & 60 & 60 \\
-symplectic & 1.0 & 1.0 & 60 & 60 \\
-euler & 1.0 & 1.0 & 1.0 & 60 \\
-neural-ode-rollout & 0.01 & 0.01 & 0.01 & 60 \\
-neural-ode-rollout-mixed & 0.01 & 0.01 & 0.01 & 60 \\
-chronos2-multi & 0.01 & 0.01 & 0.01 & 60 \\
-chronos2-uni & 0.01 & 0.01 & 0.01 & 60 \\
-hnn-rollout & 0.01 & 0.01 & 0.01 & 1.0 \\
-neural-ode & 0.01 & 0.01 & 0.01 & 1.0 \\
-hnn & 0.01 & 0.01 & 0.01 & 1.0 \\
-lnn & 0.01 & 0.01 & 0.01 & 0.01 \\
-\bottomrule
-\end{tabular}
-\end{table}
+% (Table tab:predhorizon relocated to Appendix D)
 
 \paragraph{Unadjusted regime contrast.} On the shared held-out set the three regimes differ
 in both their constants and their initial conditions, so a regime contrast conflates
@@ -869,6 +824,61 @@ hnn-rollout-mixed & 1.244 & 1.172 & 0.592 \\
 neural-ode & 1.221 & 1.095 & 0.770 \\
 hnn & 1.262 & 1.303 & 0.626 \\
 lnn & 1.511 & 1.408 & 1.345 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Additional result tables}
+\label{app:extra}
+Full per-model values for the horizon breakdown (\S\ref{sec:behavior}) and the predictability
+horizon (\S\ref{sec:sysid}); the key numbers are stated inline in the body.
+
+\begin{table}[tbp]
+\centering\small
+\caption{Out-of-sample mean angle error (rad) by horizon, reliability-adjusted, on the
+shared held-out grid (selected models). The cross-family comparison uses horizons
+$\{1,10\}$\,s.}\label{tab:horizon}
+\begin{tabular}{lcc}
+\toprule
+Model & 1\,s & 10\,s \\
+\midrule
+rk4 (oracle) & 0.000 & 0.118 \\
+symplectic & 0.042 & 0.368 \\
+euler & 0.067 & 0.743 \\
+kimi-k2.6 & 0.457 & 0.619 \\
+chronos2-multi & 0.591 & 0.777 \\
+chronos2-uni & 0.622 & 0.773 \\
+neural-ode-rollout-mixed & 0.779 & 0.908 \\
+neural-ode-rollout & 0.790 & 0.950 \\
+hnn-rollout & 0.758 & 1.085 \\
+grok-4-1-fast-reasoning & 0.905 & 0.857 \\
+neural-ode & 0.793 & 1.264 \\
+deepseek-v4-pro & 0.996 & 0.909 \\
+lnn (full-scale) & 1.335 & 1.508 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[tbp]
+\centering\small
+\caption{Predictability horizon (s): longest horizon tracked contiguously below threshold
+$\tau$, on the shared out-of-sample set (ladder $\{0.01,1,10,60\}$\,s). Higher is
+better.}\label{tab:predhorizon}
+\begin{tabular}{lcccc}
+\toprule
+Model & $\tau{=}0.1$ & $0.25$ & $0.5$ & $1.0$ \\
+\midrule
+rk4 (oracle) & 1.0 & 10 & 60 & 60 \\
+symplectic & 1.0 & 1.0 & 60 & 60 \\
+euler & 1.0 & 1.0 & 1.0 & 60 \\
+neural-ode-rollout & 0.01 & 0.01 & 0.01 & 60 \\
+neural-ode-rollout-mixed & 0.01 & 0.01 & 0.01 & 60 \\
+chronos2-multi & 0.01 & 0.01 & 0.01 & 60 \\
+chronos2-uni & 0.01 & 0.01 & 0.01 & 60 \\
+hnn-rollout & 0.01 & 0.01 & 0.01 & 1.0 \\
+neural-ode & 0.01 & 0.01 & 0.01 & 1.0 \\
+hnn & 0.01 & 0.01 & 0.01 & 1.0 \\
+lnn & 0.01 & 0.01 & 0.01 & 0.01 \\
 \bottomrule
 \end{tabular}
 \end{table}
