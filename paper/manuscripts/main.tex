@@ -512,6 +512,55 @@ Model & Objective & Err & vs.\ prev.\ row \\
 \end{tabular}
 \end{table}
 
+\subsection{Physical fidelity: energy conservation and stability}
+\label{sec:energy}
+Pointwise angle error is not the axis the Hamiltonian and Lagrangian networks are designed
+for; those architectures target structure preservation. We therefore evaluate energy
+conservation directly on the undamped (\texttt{normal}) regime, where the true energy is
+constant and HNN/LNN are well specified. Table~\ref{tab:energy} reports the mean absolute
+energy drift over a $10$\,s rollout, normalized by the fixed scale $E^{*}{=}g\sum_i m_i L_i$
+(0 = perfect conservation), and the fraction of rollouts that stay bounded.
+
+Three points follow. First, the inductive bias does not translate into physical fidelity: the
+symplectic integrator (a classical structure-preserving method) drifts by $0.066$, while the
+lowest-drift learned model is $0.78$---worse than a plain Euler integrator ($0.494$) and an
+order of magnitude above symplectic. Second, this is a property of the learned energy
+function, not the rollout integrator: rolling the HNN out with a \emph{symplectic} integrator
+leaves its drift essentially unchanged (e.g.\ $2.04$ vs.\ $2.07$ for hnn-rollout; $0.79$ vs.\
+$0.87$ for hnn-rollout-mixed), because it conserves its \emph{learned} Hamiltonian exactly but
+that Hamiltonian is a poor match to the true energy. Third, the Hamiltonian bias gives no
+advantage over a plain Neural~ODE at matched objective (neural-ode-rollout-mixed $0.78 \approx$
+hnn-rollout-mixed $0.87$); what reduces drift is the rollout objective, not the structure. The
+LNN additionally fails on stability, with only $27\%$ of rollouts bounded. Even on the axis
+they are built for, the learned models do not match the classical integrators. (As for the
+leaderboard, the learned energy functions are estimated from nine trajectories;
+\S\ref{sec:limitations}.)
+
+\begin{table}[tbp]
+\centering\small
+\caption{Physical fidelity on the undamped (\texttt{normal}) regime: mean absolute energy
+drift over a $10$\,s rollout, normalized by $E^{*}{=}g\sum_i m_i L_i$ (0 = perfect
+conservation), and fraction of bounded rollouts. Rolling the HNN out with a symplectic
+integrator gives near-identical drift, so the error is in the learned Hamiltonian, not the
+integrator.}\label{tab:energy}
+\begin{tabular}{llcc}
+\toprule
+Model & Family & Energy drift & Stable \\
+\midrule
+rk4 & numerical & 0.000 & 100\% \\
+symplectic & numerical & 0.066 & 100\% \\
+euler & numerical & 0.494 & 100\% \\
+neural-ode-rollout-mixed & learned & 0.779 & 100\% \\
+hnn-rollout-mixed & learned & 0.865 & 100\% \\
+neural-ode-rollout & learned & 0.872 & 100\% \\
+hnn-rollout & learned & 2.065 & 100\% \\
+lnn & learned & 4.038 & 27\% \\
+hnn & learned & 4.270 & 100\% \\
+neural-ode & learned & 4.346 & 100\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \subsection{Chaos-appropriate analysis}
 \label{sec:sysid}
 \paragraph{Predictability horizon.} Table~\ref{tab:predhorizon} reports the longest horizon
@@ -664,6 +713,7 @@ adjustment reorders them, may differ on another system. The harness is substrate
 applying it to other chaotic systems is a direct extension.
 
 \section{Limitations}
+\label{sec:limitations}
 The leaderboard aggregates $180$ held-out trajectories ($60$ per regime) with bootstrap
 confidence intervals, and the powered sub-studies (objective, multivariate, system-ID) use
 $n{=}720$--$900$ paired samples; all trajectories derive from a single held-out seed, and
@@ -674,16 +724,20 @@ results---for example the overall system-identification gap
 full-trajectory; a full-rollout protocol would allow the predictability horizon to be
 measured directly rather than inferred from four horizons. The metric is a deterministic
 pointwise error; because a chaotic forecast is properly a distribution that broadens at the
-Lyapunov rate, ensemble forecasts scored with proper scoring rules (e.g., CRPS, as used in
-numerical weather prediction) and invariant-statistic (attractor-fidelity) measures are
-complementary evaluations that we do not report, and a version under initial-condition noise,
-where error is dominated by amplification of the state estimate, is a further extension. The
+Lyapunov rate, we report energy conservation (\S\ref{sec:energy}), but fuller probabilistic scoring (e.g.,
+CRPS/ensembles, as used in numerical weather prediction), attractor-distribution measures, and
+a version under initial-condition noise---where error is dominated by amplification of the
+state estimate---are left to future work. The
 comparison is structurally
 asymmetric: the learned models are trained on the $k$-pendulum family and tested on held-out
 trajectories of it, whereas the LLMs and Chronos are zero-shot. The learned models are trained
 on only nine trajectories (one per (k, regime) cell), a small budget for a chaotic system; the
 finding that they do not exceed simple baselines is specific to this training budget, and a
 data- or capacity-scaling study is needed to separate architecture from data limitations. The
+Hamiltonian and Lagrangian architectures also conserve energy by construction and cannot
+represent dissipation, so the two damped regimes disadvantage them in the pooled leaderboard
+independently of quality; the conservation test (\S\ref{sec:energy}) is therefore run only on
+the undamped regime. The
 pendulum equations are common in training corpora, so contamination cannot be excluded; the
 hidden-constants regime mitigates this only in part. Finally, the numerical results are demonstrated on a single
 system and three LLMs; extending them to other chaotic systems (Lorenz, driven pendulum) and
