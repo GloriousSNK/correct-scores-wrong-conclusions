@@ -68,7 +68,8 @@ protocol, and a reliability-adjusted metric that assigns a fixed error to refusa
 parse failures rather than discarding them. Out of sample, the learned dynamics models
 increase their error by approximately a factor of three relative to in-sample evaluation
 ($\sim$0.26 to 0.84--1.06\,rad) and rank below both a zero-shot time-series model and a
-zero-shot LLM. Among the black-box methods evaluated, the lowest error is obtained by an
+zero-shot LLM, and do not clear trivial baselines such as persistence and a nearest-neighbor
+analog lookup. Among the black-box methods evaluated, the lowest error is obtained by an
 LLM (\texttt{kimi}, $0.538$\,rad), while the known-physics integrators, which are given the
 exact equations, form a ceiling by construction. The training objective affects
 out-of-sample error (rollout loss is lower than derivative matching,
@@ -103,10 +104,11 @@ same out-of-sample held-out trajectories, with a reliability-adjusted metric tha
 fixed error to abstentions rather than discarding them
 (\S\ref{sec:metrics}, \S\ref{sec:reliability}).
 \item An \textbf{out-of-sample leaderboard}: tested off their training trajectories the
-learned models reach 0.84--1.06\,rad (from $\sim$0.26 in-sample), and among the models
-evaluated the lowest black-box error is obtained by an LLM (\texttt{kimi}, 0.538\,rad).
-Rollout loss reduces error relative to derivative matching, while mixed-$k$ rollout shows no
-significant out-of-sample effect (\S\ref{sec:objective}).
+learned models reach 0.84--1.06\,rad (from $\sim$0.26 in-sample) and do not clear trivial
+baselines (persistence, nearest-neighbor analog lookup), while among the models evaluated the
+lowest black-box error is obtained by an LLM (\texttt{kimi}, 0.538\,rad). Rollout loss reduces
+error relative to derivative matching, while mixed-$k$ rollout shows no significant
+out-of-sample effect (\S\ref{sec:objective}).
 \item \textbf{Chaos-appropriate analysis}: a predictability-horizon metric and a
 confound-free system-identification test. An unadjusted regime contrast suggests lower
 error when constants are hidden; a matched paired experiment and a direct inference probe
@@ -294,6 +296,15 @@ t{=}0.01$\,s using the exact equations of motion; their error is from discretiza
 RK4 is the data-generating process and serves as an oracle ceiling rather than an independent
 competitor.
 
+\paragraph{Baselines.} We add four trivial floors, evaluated on the same grid.
+\emph{Persistence} predicts $\theta_T{=}\theta_0$; \emph{constant-velocity} predicts
+$\theta_T{=}\theta_0{+}\omega_0 T$; \emph{linearized} integrates the small-angle linearization
+about the downward equilibrium (matrix exponential of the numerical Jacobian of the dynamics,
+using the cell's true constants); and \emph{nearest-neighbor} is an analog forecast that
+returns the state reached $T$ later by the closest state (angle-wrapped distance) in the
+matching (k, regime) training trajectory---a memorization floor built from the same data the
+learned models were trained on.
+
 \section{Results}
 \subsection{Out-of-sample leaderboard}
 \label{sec:reliability}
@@ -308,20 +319,27 @@ forecasts. Confidence intervals are $95\%$ paired bootstrap ($B{=}10^4$).
 The classical integrators have the lowest error: RK4 (the data-generating process, hence an
 oracle ceiling) at $0.059$, symplectic at $0.205$, Euler at $0.405$. Among the black-box
 methods evaluated, the lowest error is obtained by \texttt{kimi} ($0.538$\,rad, $99\%$
-answered), below both Chronos modes and all learned dynamics models. The learned models,
-which score $\sim$0.26\,rad under in-sample evaluation, reach $0.84$--$1.06$\,rad out of
-sample; the lowest (mixed-$k$ rollout Neural~ODE, $0.844$) ranks 6th, below the integrators,
-\texttt{kimi}, and both Chronos modes. This factor of approximately three between in-sample
-and out-of-sample error indicates that the in-sample strength of small learned dynamics
-models on this benchmark is largely attributable to evaluation on their training
-trajectories.
+answered), below both Chronos modes and all learned dynamics models. The four trivial
+baselines locate the floor. \texttt{kimi} is below every baseline with a non-overlapping
+confidence interval (the closest, nearest-neighbor, is $0.725$), so its standing is not an
+artifact of the scoring; both Chronos modes are also below the best baseline in point
+estimate. The learned dynamics models are not: in point estimates the nearest-neighbor analog
+lookup ($0.725$) is below \emph{every} learned model, the linearized-pendulum baseline
+($0.855$) is below all but the best, and persistence ($1.004$) is below the plain Neural~ODE,
+HNN, and LNN, with intervals overlapping only for the closest comparisons. Out of sample the
+learned models therefore do not clear trivial floors built from the same data they were
+trained on. They score $\sim$0.26\,rad under in-sample evaluation and reach $0.84$--$1.06$\,rad
+here (the lowest, mixed-$k$ rollout Neural~ODE, ranks 7th); this factor of approximately three
+indicates that their in-sample strength on this benchmark is largely attributable to
+evaluation on their training trajectories.
 
 \begin{table}[tbp]
 \centering\small
 \caption{Out-of-sample leaderboard on the shared held-out set ($360$ cells, horizons
 $\{1,10\}$\,s). Reliability-adjusted mean angle error (rad): unanswered or missing cells
 scored at $\pi/2$; $95\%$ bootstrap CI. RK4 is the data-generating process, hence an oracle
-ceiling rather than a competitor. Methods new in this work are marked $\dagger$.}\label{tab:overall}
+ceiling rather than a competitor. Methods new in this work are marked $\dagger$; trivial
+baselines (floors) are marked $\ddagger$.}\label{tab:overall}
 \begin{tabular}{rlcccl}
 \toprule
 \# & Model & Err & 95\% CI & Answered & Family \\
@@ -332,15 +350,19 @@ ceiling rather than a competitor. Methods new in this work are marked $\dagger$.
 3 & kimi-k2.6 & 0.538 & [0.475, 0.602] & 99\% & LLM \\
 4 & chronos2-multi$^\dagger$ & 0.684 & [0.617, 0.752] & 100\% & time-series \\
 5 & chronos2-uni$^\dagger$ & 0.697 & [0.631, 0.766] & 100\% & time-series \\
-6 & neural-ode-rollout-mixed$^\dagger$ & 0.844 & [0.770, 0.920] & 100\% & learned \\
-7 & neural-ode-rollout & 0.870 & [0.795, 0.947] & 100\% & learned \\
-8 & grok-4-1-fast-reasoning & 0.881 & [0.805, 0.957] & 82\% & LLM \\
-9 & hnn-rollout & 0.922 & [0.847, 0.998] & 100\% & learned \\
-10 & deepseek-v4-pro & 0.952 & [0.881, 1.027] & 100\% & LLM \\
-11 & hnn-rollout-mixed$^\dagger$ & 1.003 & [0.923, 1.084] & 100\% & learned \\
-12 & neural-ode & 1.028 & [0.953, 1.107] & 100\% & learned \\
-13 & hnn & 1.064 & [0.982, 1.145] & 100\% & learned \\
-14 & lnn$^\dagger$ (full-scale) & 1.421 & [1.363, 1.481] & 45\% & learned \\
+6 & nearest-neighbor$^\ddagger$ & 0.725 & [0.657, 0.797] & 100\% & baseline \\
+7 & neural-ode-rollout-mixed$^\dagger$ & 0.844 & [0.770, 0.920] & 100\% & learned \\
+8 & linearized$^\ddagger$ & 0.855 & [0.774, 0.939] & 100\% & baseline \\
+9 & neural-ode-rollout & 0.870 & [0.795, 0.947] & 100\% & learned \\
+10 & grok-4-1-fast-reasoning & 0.881 & [0.805, 0.957] & 82\% & LLM \\
+11 & hnn-rollout & 0.922 & [0.847, 0.998] & 100\% & learned \\
+12 & deepseek-v4-pro & 0.952 & [0.881, 1.027] & 100\% & LLM \\
+13 & hnn-rollout-mixed$^\dagger$ & 1.003 & [0.923, 1.084] & 100\% & learned \\
+14 & persistence$^\ddagger$ & 1.004 & [0.934, 1.078] & 100\% & baseline \\
+15 & neural-ode & 1.028 & [0.953, 1.107] & 100\% & learned \\
+16 & hnn & 1.064 & [0.982, 1.145] & 100\% & learned \\
+17 & constant-velocity$^\ddagger$ & 1.319 & [1.241, 1.396] & 100\% & baseline \\
+18 & lnn$^\dagger$ (full-scale) & 1.421 & [1.363, 1.481] & 45\% & learned \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -658,8 +680,9 @@ future work.
 On a controlled $k$-pendulum benchmark spanning four model families, evaluated on the same
 out-of-sample held-out trajectories, in-sample evaluation of learned dynamics models is
 optimistic: scored off their training data the learned models increase their error by
-approximately a factor of three and rank below both a zero-shot time-series model and a
-zero-shot LLM, so that the lowest black-box error in our benchmark is obtained by an LLM
+approximately a factor of three, rank below both a zero-shot time-series model and a
+zero-shot LLM, and do not exceed trivial baselines (persistence, nearest-neighbor analog
+lookup), so that the lowest black-box error in our benchmark is obtained by an LLM
 (\texttt{kimi}), while the numerical integrators form the ceiling when the equations are
 known. The objective, not the architecture, transfers (rollout loss is lower than derivative
 matching; mixed-$k$ shows no out-of-sample effect). Reliability-adjusted scoring and
