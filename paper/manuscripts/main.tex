@@ -75,9 +75,11 @@ out-of-sample error (rollout loss is lower than derivative matching,
 $p_{\mathrm{Holm}}{=}1.6{\times}10^{-7}$), but mixed-$k$ rollout, which is best in-sample,
 shows no significant out-of-sample effect. A matched, confound-free experiment and a direct
 inference probe find little evidence that the LLMs infer hidden physical constants; under
-the conditions of our benchmark they default to Earth-standard values. In-sample evaluation
-can therefore substantially overestimate learned-dynamics performance, which indicates a
-need for controlled out-of-sample comparison of forecasting methods.
+the conditions of our benchmark they default to Earth-standard values. We report the cost of
+each family alongside its error: the lowest-error black-box method is also the most expensive
+per query, whereas the numerical and trained models are free at inference. In-sample
+evaluation can therefore substantially overestimate learned-dynamics performance, which
+indicates a need for controlled out-of-sample comparison of forecasting methods.
 \end{abstract}
 
 \section{Introduction}
@@ -637,7 +639,13 @@ confidence intervals, and the powered sub-studies (objective, multivariate, syst
 $n{=}720$--$900$ paired samples; all trajectories derive from a single held-out seed, and
 additional seeds would tighten the error bars. Predictions are single-endpoint rather than
 full-trajectory; a full-rollout protocol would allow the predictability horizon to be
-measured directly rather than inferred from four horizons. The comparison is structurally
+measured directly rather than inferred from four horizons. The metric is a deterministic
+pointwise error; because a chaotic forecast is properly a distribution that broadens at the
+Lyapunov rate, ensemble forecasts scored with proper scoring rules (e.g., CRPS, as used in
+numerical weather prediction) and invariant-statistic (attractor-fidelity) measures are
+complementary evaluations that we do not report, and a version under initial-condition noise,
+where error is dominated by amplification of the state estimate, is a further extension. The
+comparison is structurally
 asymmetric: the learned models are trained on the $k$-pendulum family and tested on held-out
 trajectories of it, whereas the LLMs and Chronos are zero-shot. The pendulum equations are
 common in training corpora, so contamination cannot be excluded; the hidden-constants regime
