@@ -132,8 +132,36 @@ def build_predictors(cfg: dict, only: set[str] | None = None) -> dict:
             raise ValueError(f"unknown model kind: {kind}")
     return preds
 
-def make_params_for_cell(cfg: dict, trajectories: dict[str, Trajectory]):
-    def fn(cell: EvalCell):
+LEARNED_PREDICTOR_TYPES = (NeuralODEPredictor, HNNPredictor, LNNPredictor, LearnedPredictor)
+
+
+def _k_values(values, k: int, default: float) -> list[float]:
+    vals = list(values or [])
+    if not vals:
+        vals = [default]
+    while len(vals) < k:
+        vals.append(vals[-1])
+    return vals[:k]
+
+
+def _normal_prior_params(cfg: dict, k: int) -> PendulumParams:
+    normal = cfg.get("regimes", {}).get("normal", {})
+    return PendulumParams.make(
+        k=k,
+        L=_k_values(normal.get("L"), k, 1.0),
+        m=_k_values(normal.get("m"), k, 1.0),
+        g=float(normal.get("g", 9.81)),
+        damping=float(normal.get("damping", 0.0)),
+    )
+
+
+def make_params_for_cell(
+    cfg: dict,
+    trajectories: dict[str, Trajectory],
+    *,
+    withhold_hidden_constants_for_learned: bool = False,
+):
+    def fn(cell: EvalCell, predictor=None):
         traj = trajectories[cell.movement_id]
         c = traj.constants
         true_p = PendulumParams.make(k=cell.k, L=c["L"], m=c["m"],
@@ -142,7 +170,13 @@ def make_params_for_cell(cfg: dict, trajectories: dict[str, Trajectory]):
             disclosed = None
         else:
             disclosed = true_p
-        return true_p, disclosed
+
+        prediction_p = true_p
+        if (withhold_hidden_constants_for_learned
+                and cell.regime == "changed_hidden"
+                and isinstance(predictor, LEARNED_PREDICTOR_TYPES)):
+            prediction_p = _normal_prior_params(cfg, cell.k)
+        return prediction_p, disclosed, true_p
     return fn
 
 def make_image_renderer(cfg: dict, cache: dict, trajectories: dict[str, Trajectory]):
@@ -216,10 +250,16 @@ async def _amain(args):
     )
     print(f"Planned {len(cells)} eval cells across {len(predictors)} models.")
 
-    params_fn = make_params_for_cell(cfg, trajectories)
+    params_fn = make_params_for_cell(
+        cfg, trajectories,
+        withhold_hidden_constants_for_learned=args.withhold_hidden_constants_for_learned,
+    )
     image_fn = make_image_renderer(cfg, cache={}, trajectories=trajectories)
 
     ckpt_dir = args.checkpoint_dir or cfg["paths"]["checkpoints_dir"]
+    if args.withhold_hidden_constants_for_learned and args.checkpoint_dir is None:
+        ckpt_dir = ckpt_dir.rstrip("/\\") + "_hidden_prior"
+        print(f"Withholding hidden-regime constants for learned predictors; writing to {ckpt_dir}/")
     results = await run_all(
         predictors=predictors, cells=cells, trajectories=trajectories,
         params_by_cell=params_fn, image_for=image_fn, ckpt_dir=ckpt_dir,
@@ -245,8 +285,12 @@ def main():
                     help="tiny run for smoke testing")
     ap.add_argument("--checkpoint-dir", default=None,
                     help="override checkpoints_dir from config (useful for best-of-N sampling)")
+    ap.add_argument("--withhold-hidden-constants-for-learned", action="store_true",
+                    help="for changed_hidden learned-model cells, pass normal-regime constants as a neutral prior while scoring against true constants")
     args = ap.parse_args()
     asyncio.run(_amain(args))
 
 if __name__ == "__main__":
     main()
+
+

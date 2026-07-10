@@ -1,124 +1,126 @@
 # Forecasting Chaos Across Model Families
 
-A controlled benchmark that asks: **given the state of a chaotic $k$-pendulum at time
-$t$, which family of modern models best predicts its state at $t+T$ — and at what
-reliability and cost?** We place four model families on identical inputs and metrics —
-**LLMs**, **time-series foundation models** (Chronos / Chronos-2), **learned dynamics
-models** (Neural ODE, HNN, LNN), and **classical integrators** (Euler, RK4, symplectic)
-— and, crucially, score every family on the **same out-of-sample held-out trajectories**.
+This repository contains a controlled benchmark for comparing forecasting methods on
+the $k$-link pendulum. Given the state of the system at time $t$, the task is to
+predict the state at $t+T$ under shared out-of-sample trajectories and
+reliability-adjusted scoring.
 
-📄 **Paper:** [`paper/manuscripts/ForecastingChaosAcrossModelFamilies.pdf`](paper/manuscripts/ForecastingChaosAcrossModelFamilies.pdf)
-(paper manuscript; LaTeX source in the same folder).
+The benchmark evaluates four model families:
 
-## Headline result (out-of-sample, reliability-adjusted)
+- large language models: Kimi, Grok, DeepSeek
+- time-series foundation models: Chronos / Chronos-2
+- learned dynamics models: Neural ODE, HNN, LNN
+- classical integrators: Euler, RK4, symplectic
 
-Mean absolute angle error (rad) on the shared held-out set (180 held-out trajectories ×
-horizons {1, 10}s; failed/missing cells scored at the random-guess baseline π/2; 95%
-bootstrap CIs).
+Paper: [`paper/manuscripts/ForecastingChaosAcrossModelFamilies.pdf`](paper/manuscripts/ForecastingChaosAcrossModelFamilies.pdf)
 
-| # | Model | Err | Family |
-|---|-------|----:|--------|
-| – | rk4 *(oracle)* | 0.059 | numerical |
+## Current Result
+
+Mean absolute angle error in radians on the shared held-out set
+($180$ trajectories, horizons $\{1,10\}$ s). Failed or missing cells are scored at
+the random-guess baseline $\pi/2$.
+
+| Rank | Model | Error | Family |
+|---:|---|---:|---|
+| reference | rk4 | 0.059 | numerical |
 | 1 | symplectic | 0.205 | numerical |
 | 2 | euler | 0.405 | numerical |
-| **3** | **kimi-k2.6** | **0.538** | **LLM** |
-| 4 | chronos-2 (multi) | 0.684 | time-series |
-| 5 | chronos-2 (uni) | 0.697 | time-series |
-| 6 | neural-ode-rollout-mixed | 0.844 | learned |
-| 7 | neural-ode-rollout | 0.870 | learned |
+| 3 | kimi-k2.6 | 0.538 | LLM |
+| 4 | chronos-2 multi | 0.684 | time-series |
+| 5 | chronos-2 uni | 0.697 | time-series |
+| 6 | nearest-neighbor | 0.725 | baseline |
+| 7 | linearized | 0.855 | baseline |
 | 8 | grok-4-1-fast-reasoning | 0.881 | LLM |
-| … | … | … | … |
-| 14 | lnn | 1.421 | learned |
+| 9 | hnn-rollout | 0.972 | learned |
+| 10 | persistence | 1.004 | baseline |
+| 11 | neural-ode-rollout-mixed | 1.036 | learned |
+| 12 | hnn-rollout-mixed | 1.066 | learned |
+| 13 | neural-ode | 1.110 | learned |
+| 14 | neural-ode-rollout | 1.121 | learned |
+| 15 | hnn | 1.138 | learned |
+| 16 | constant-velocity | 1.319 | baseline |
+| 17 | lnn | 1.349 | learned |
 
-## Key findings
+The numerical rows use the known equations and are reference methods. The comparison
+of interest is among black-box methods. In this benchmark, Kimi has the lowest
+reliability-adjusted error among the evaluated black-box methods, while Chronos-2 is
+the lowest-error local zero-shot forecaster.
 
-- **In-sample evaluation of learned dynamics models is badly optimistic.** Scored on
-  their own training trajectories the learned models look strong (~0.26 rad); on a shared
-  *held-out* set their error roughly **triples** (0.84–1.06) and they fall **below** a
-  zero-shot time-series model and a zero-shot LLM.
-- **On a level out-of-sample field, a frontier LLM (kimi) is the best non-numerical
-  forecaster** — ahead of the time-series models and every learned model. Classical
-  integrators remain unbeaten.
-- **The training objective generalises; the recipe does not.** Rollout loss beats
-  derivative-matching (paired, $p_{\text{Holm}}=1.6\times10^{-7}$), but the in-sample
-  "mixed-$k$ wins" result is a **statistical null** out of sample.
-- **No in-context system identification.** A confound-free, matched-constant experiment
-  plus a direct inference probe show LLMs do **not** recover hidden physical constants —
-  they fall back on Earth-standard priors.
-- **Reliability is a first-class axis.** Scoring abstentions (instead of averaging only
-  over answered cells) reorders the board and exposes brittle models.
+## Key Findings
 
-Full numbers, CIs, and significance tests: [`results/summary_llm/`](results/summary_llm)
-(`unified_leaderboard.md`, `llm_summary.md`) and [`results/summary_boot/`](results/summary_boot).
+- Held-out evaluation substantially changes the learned-dynamics conclusion. Learned
+  models that appear strong in sample degrade out of sample and do not exceed the
+  linearized or nearest-neighbor baselines under the current training budget.
+- Reliability-adjusted scoring matters. Missing, refused, or invalid cells are scored
+  instead of dropped.
+- Chronos is evaluated in its standard history-conditioned form with a 10 s context
+  window. LLMs and learned dynamics models are state-conditioned from $t=0$.
+- Hidden-constant results require matched controls. An unadjusted regime contrast
+  suggests lower error when constants are hidden, but the matched disclosure test and
+  inference probe give little evidence that the evaluated LLMs infer hidden physical
+  constants.
+- The LLM evaluation is the only per-query billed run. Local numerical, learned, and
+  Chronos evaluations use local compute.
 
-## Repository layout
+## Repository Layout
 
-```
-bench/                 # library
-  simulator.py         # k-pendulum dynamics + Euler/RK4/leapfrog integrators
-  metrics.py           # angle/coord/energy + predictability-horizon helpers
-  prompts.py, rendering.py, schema.py, export.py, runner.py
+```text
+bench/
+  simulator.py         # k-pendulum dynamics and numerical integrators
+  metrics.py           # angle, coordinate, energy, reliability metrics
+  prompts.py           # LLM prompt templates
+  runner.py            # evaluation harness
   models/
-    numerical.py       # Euler / RK4 / symplectic
+    numerical.py       # Euler, RK4, symplectic
     azure_llm.py       # OpenAI-compatible LLM client
-    ts_local.py        # local Chronos / Chronos-2 (uni + multivariate)
-    timeseries.py      # Azure-hosted time-series client
-    learned.py         # Neural ODE / HNN / LNN (trained)
+    ts_local.py        # local Chronos / Chronos-2
+    learned.py         # Neural ODE / HNN / LNN
 scripts/
-  generate_dataset.py  run_eval.py  aggregate.py  train_learned.py
-  analyze_divergence.py        # predictability horizon
-  analyze_system_id.py         # system-identification gap
-  analyze_ts_significance.py   # Chronos uni-vs-multi paired test
-  analyze_boot_cis.py          # per-model CIs + paired contrasts
-  export_heldout.py            # compact shared held-out eval spec
-config.yaml            # main grid; config.boot.yaml / config.tsboot.yaml for sub-studies
-paper/manuscripts/        # main.tex, references.bib, ForecastingChaosAcrossModelFamilies.pdf
-results/                  # summaries + trained weights (raw checkpoints via Release)
+  generate_dataset.py
+  run_eval.py
+  aggregate.py
+  train_learned.py
+  analyze_boot_cis.py
+  analyze_divergence.py
+  analyze_system_id.py
+  analyze_ts_significance.py
+paper/manuscripts/
+  main.tex
+  references.bib
+  ForecastingChaosAcrossModelFamilies.pdf
+results/
+  summary files, trained weights, and held-out specifications
+Historical log/
+  superseded notes and earlier draft findings
 ```
 
-## Reproduce
+## Reproduction
 
 ```bash
-# 1. Environment
-python -m venv .venv && . .venv/Scripts/activate    # (or .venv/bin/activate on Unix)
+python -m venv .venv
+. .venv/Scripts/activate      # Windows PowerShell/Git Bash users may need the matching activation script
 pip install -r requirements.txt
 
-# 2. Ground-truth dataset (deterministic from the config seed)
 python scripts/generate_dataset.py --config config.yaml
-
-# 3. Train the learned dynamics models (CUDA GPU recommended for the LNN)
 python scripts/train_learned.py --models neural_ode hnn lnn
-python scripts/train_learned.py --models neural_ode --rollout-ks 10 50   # mixed-k rollout
-
-# 4. Evaluate (numerical / learned / local time-series are free; LLMs need API keys)
-cp .env.example .env          # then add your OpenAI-compatible key for the LLM runs
 python scripts/run_eval.py --config config.yaml
-
-# 5. Aggregate + analyses (CIs, predictability horizon, system-ID, significance)
 python scripts/aggregate.py --config config.yaml
 python scripts/analyze_boot_cis.py
 ```
 
-**Out-of-sample protocol.** Learned models are trained on one seed and evaluated on a
-disjoint held-out seed; `scripts/export_heldout.py` produces the compact
-`results/heldout_llm_eval_set.json` so the LLM side (run on a separate machine) scores the
-*identical* trajectories, keyed by `movement_id`.
+LLM evaluations require API credentials in `.env`. The local numerical, learned, and
+Chronos evaluations do not require API calls.
 
-**Data release.** The committed `results/` holds the summaries, trained weights
-(`learned_models/*.pt`), and the held-out spec. The full per-cell checkpoints and raw
-datasets (~50k files) are attached as a GitHub **Release** asset to keep the repo lean.
+## Data and Artifacts
 
-A no-API-key smoke test:
-```bash
-python scripts/generate_dataset.py --smoke
-python scripts/run_eval.py --smoke --models rk4 euler symplectic
-python scripts/aggregate.py
-```
+The repository is configured to keep large raw result folders out of ordinary commits.
+Summary tables, trained weights, held-out specifications, and manuscript artifacts should
+be included or attached as release assets when publishing a submission snapshot. Do not
+commit `.env` or other credential files.
 
 ## Authors
 
-**Sriman Narayan Kandi** (lead, corresponding — kandisriman@gmail.com),
-Trishant Srinivasan, Shrithik Shahapure.
+Sriman Narayan Kandi, Trishant Srinivasan, Shrithik Shahapure.
 
 ## Citation
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 import json
 import os
 from typing import Iterable, Callable
@@ -117,6 +118,11 @@ async def run_all(*, predictors: dict[str, object],
                   pbar_desc: str = "eval") -> list[Prediction]:
     os.makedirs(ckpt_dir, exist_ok=True)
 
+    try:
+        params_accepts_predictor = len(inspect.signature(params_by_cell).parameters) >= 2
+    except (TypeError, ValueError):
+        params_accepts_predictor = False
+
     results: list[Prediction] = []
     pending: list[tuple[EvalCell, str]] = []
     for cell in cells:
@@ -149,10 +155,16 @@ async def run_all(*, predictors: dict[str, object],
 
     async def _task(cell: EvalCell, ckpt: str):
         traj = trajectories[cell.movement_id]
-        params, disclosed = params_by_cell(cell)
+        predictor = predictors[cell.model_name]
+        params_pack = (params_by_cell(cell, predictor)
+                       if params_accepts_predictor else params_by_cell(cell))
+        if len(params_pack) == 3:
+            params, disclosed, scoring_params = params_pack
+        else:
+            params, disclosed = params_pack
+            scoring_params = params
         true_state_at_horizon = _state_at(traj, cell.horizon)
         state0 = _state_at(traj, 0.0)
-        predictor = predictors[cell.model_name]
         image_b64 = (image_for(cell, traj)
                      if cell.modality in ("images", "images_coords")
                      and getattr(predictor, "uses_modality", False)
@@ -166,7 +178,7 @@ async def run_all(*, predictors: dict[str, object],
             state0=state0, horizon=cell.horizon, image_b64=image_b64,
             history_times=hist_t, history_states=hist_s,
         )
-        return await _run_one(predictor, req, true_state_at_horizon, params, ckpt)
+        return await _run_one(predictor, req, true_state_at_horizon, scoring_params, ckpt)
 
     tasks = [asyncio.create_task(_task(c, ck)) for c, ck in pending]
     pbar = tqdm(total=len(tasks), desc=pbar_desc)
@@ -179,3 +191,4 @@ async def run_all(*, predictors: dict[str, object],
         pbar.update(1)
     pbar.close()
     return results
+

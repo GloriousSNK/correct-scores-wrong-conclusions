@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import time
 from typing import Optional
 
@@ -10,6 +11,22 @@ from .base import PredictionRequest, PredictionResult
 # Fixed dimensions: always pad state/params to max k=3
 STATE_DIM = 6   # [theta_1..3, omega_1..3], inactive dims stay 0
 PARAM_DIM = 9   # [k, g, L_1, L_2, L_3, m_1, m_2, m_3, damping]
+
+
+def _learned_device():
+    """Device for learned-model inference. Override with DP_LEARNED_DEVICE=cpu/cuda."""
+    import torch
+    requested = os.environ.get("DP_LEARNED_DEVICE", "auto").strip().lower()
+    if requested in ("", "auto"):
+        return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    return torch.device(requested)
+
+
+def _model_device(model):
+    try:
+        return next(model.parameters()).device
+    except StopIteration:
+        return _learned_device()
 
 
 def _encode_params(req: PredictionRequest) -> np.ndarray:
@@ -41,7 +58,7 @@ def _state_mask(k: int) -> np.ndarray:
     return mask
 
 
-# ── PyTorch network definitions (also used by train_learned.py) ───────────────
+# â”€â”€ PyTorch network definitions (also used by train_learned.py) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def _build_mlp(in_dim: int, out_dim: int, hidden: int = 256, layers: int = 3):
     """Tanh MLP used by all three model types."""
@@ -59,7 +76,7 @@ def _build_mlp(in_dim: int, out_dim: int, hidden: int = 256, layers: int = 3):
 
 
 class ODEFunc:
-    """Neural ODE: MLP maps (state, params) → d_state/dt."""
+    """Neural ODE: MLP maps (state, params) â†’ d_state/dt."""
 
     def __init__(self, hidden: int = 256, layers: int = 3):
         self.net = _build_mlp(STATE_DIM + PARAM_DIM, STATE_DIM, hidden, layers)
@@ -88,8 +105,8 @@ class ODEFunc:
 
 
 class HamiltonianNet:
-    """HNN: MLP maps (state, params) → scalar H; dynamics from autograd.
-    Uses (theta, omega) as quasi-canonical coords (omega ≈ generalised momentum).
+    """HNN: MLP maps (state, params) â†’ scalar H; dynamics from autograd.
+    Uses (theta, omega) as quasi-canonical coords (omega â‰ˆ generalised momentum).
     """
 
     def __init__(self, hidden: int = 256, layers: int = 3):
@@ -119,7 +136,7 @@ class HamiltonianNet:
 
 
 class LagrangianNet:
-    """LNN: MLP maps (q, qdot, params) → scalar L; dynamics via Euler-Lagrange."""
+    """LNN: MLP maps (q, qdot, params) â†’ scalar L; dynamics via Euler-Lagrange."""
 
     def __init__(self, hidden: int = 256, layers: int = 3):
         # input: q (3) + qdot (3) + params (9) = 15, but we reuse STATE_DIM+PARAM_DIM
@@ -149,30 +166,31 @@ class LagrangianNet:
         return self
 
 
-# ── scipy-based ODE integration helpers ──────────────────────────────────────
+# â”€â”€ scipy-based ODE integration helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def _ode_rhs_node(t, y, model, params9_np, mask):
     """RHS for Neural ODE: call the network, mask inactive dims."""
     import torch
+    device = _model_device(model)
     with torch.no_grad():
-        y_t  = torch.tensor(y,      dtype=torch.float32)
-        p_t  = torch.tensor(params9_np, dtype=torch.float32)
-        dy   = model(y_t, p_t).numpy()
+        y_t = torch.as_tensor(y, dtype=torch.float32, device=device)
+        p_t = torch.as_tensor(params9_np, dtype=torch.float32, device=device)
+        dy = model(y_t, p_t).detach().cpu().numpy()
     return dy * mask
 
 
 def _ode_rhs_hnn(t, y, model, params9_np, k):
     """RHS for HNN: Hamilton's equations via autograd."""
     import torch
-    y_t = torch.tensor(y, dtype=torch.float32, requires_grad=True)
-    p_t = torch.tensor(params9_np, dtype=torch.float32)
-    H   = model(y_t, p_t)
-    dH  = torch.autograd.grad(H, y_t)[0].detach().numpy()
-    # dtheta/dt = ∂H/∂omega, domega/dt = -∂H/∂theta
+    device = _model_device(model)
+    y_t = torch.as_tensor(y, dtype=torch.float32, device=device).requires_grad_(True)
+    p_t = torch.as_tensor(params9_np, dtype=torch.float32, device=device)
+    H = model(y_t, p_t)
+    dH = torch.autograd.grad(H, y_t)[0].detach().cpu().numpy()
+    # dtheta/dt = dH/domega, domega/dt = -dH/dtheta
     dy = np.zeros_like(y)
-    dy[:3]  =  dH[3:]   # ∂H/∂omega
-    dy[3:]  = -dH[:3]   # -∂H/∂theta
-    # zero out inactive links
+    dy[:3] = dH[3:]
+    dy[3:] = -dH[:3]
     mask = _state_mask(k)
     return dy * mask
 
@@ -180,37 +198,36 @@ def _ode_rhs_hnn(t, y, model, params9_np, k):
 def _ode_rhs_lnn(t, y, model, params9_np, k):
     """RHS for LNN: Euler-Lagrange equations via autograd."""
     import torch
-    q    = torch.tensor(y[:3], dtype=torch.float32, requires_grad=True)
-    qdot = torch.tensor(y[3:], dtype=torch.float32, requires_grad=True)
+    device = _model_device(model)
+    q = torch.as_tensor(y[:3], dtype=torch.float32, device=device).requires_grad_(True)
+    qdot = torch.as_tensor(y[3:], dtype=torch.float32, device=device).requires_grad_(True)
     state6 = torch.cat([q, qdot])
-    p_t    = torch.tensor(params9_np, dtype=torch.float32)
+    p_t = torch.as_tensor(params9_np, dtype=torch.float32, device=device)
 
     L = model(state6, p_t)
 
-    dLdq    = torch.autograd.grad(L, q,    create_graph=True)[0]
+    dLdq = torch.autograd.grad(L, q, create_graph=True)[0]
     dLdqdot = torch.autograd.grad(L, qdot, create_graph=True)[0]
 
-    # Mass matrix M_ij = ∂²L/∂qdot_i ∂qdot_j
-    M = torch.zeros(3, 3)
+    M = torch.zeros(3, 3, device=device)
     for i in range(3):
         row = torch.autograd.grad(dLdqdot[i], qdot,
                                   retain_graph=True, create_graph=False)[0]
         M[i] = row
 
-    # Cross term: Σ_j (∂²L/∂qdot_i ∂q_j) * qdot_j
-    cross = torch.zeros(3)
+    cross = torch.zeros(3, device=device)
     for i in range(3):
         row = torch.autograd.grad(dLdqdot[i], q,
                                   retain_graph=True, create_graph=False)[0]
         cross[i] = (row * qdot.detach()).sum()
 
-    M = M + 1e-4 * torch.eye(3)
-    rhs    = dLdq.detach() - cross
-    qddot  = torch.linalg.solve(M, rhs.unsqueeze(1)).squeeze(1)
+    M = M + 1e-4 * torch.eye(3, device=device)
+    rhs = dLdq.detach() - cross
+    qddot = torch.linalg.solve(M, rhs.unsqueeze(1)).squeeze(1)
 
     dy = np.zeros(6, dtype=np.float32)
-    dy[:3] = qdot.detach().numpy()
-    dy[3:] = qddot.detach().numpy()
+    dy[:3] = qdot.detach().cpu().numpy()
+    dy[3:] = qddot.detach().cpu().numpy()
     mask = _state_mask(k)
     return dy * mask
 
@@ -224,7 +241,7 @@ def _integrate(rhs_fn, state0_6, horizon: float, rtol: float = 1e-6, atol: float
     return sol.y[:, -1].astype(float)
 
 
-# ── Predictor classes ─────────────────────────────────────────────────────────
+# â”€â”€ Predictor classes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _LearnedBase:
     is_async = False
@@ -234,8 +251,9 @@ class _LearnedBase:
 
     def _load(self, checkpoint: str, net_cls, **net_kw):
         import torch
-        net = net_cls(**net_kw)
-        ckpt = torch.load(checkpoint, map_location="cpu", weights_only=True)
+        device = _learned_device()
+        net = net_cls(**net_kw).to(device)
+        ckpt = torch.load(checkpoint, map_location=device, weights_only=True)
         net.load_state_dict(ckpt)
         net.eval()
         return net
@@ -352,7 +370,7 @@ class LNNPredictor(_LearnedBase):
         rhs = lambda t, y: _ode_rhs_lnn(t, y, net, params, k)
         t0 = time.perf_counter()
         try:
-            # Use coarser tolerances and a fixed max_step to bound RHS evaluations —
+            # Use coarser tolerances and a fixed max_step to bound RHS evaluations â€”
             # LNN's autograd-based RHS is expensive; tight tolerances over long horizons
             # would require thousands of steps each costing 6 autograd calls.
             final = _integrate(rhs, s0, req.horizon,
