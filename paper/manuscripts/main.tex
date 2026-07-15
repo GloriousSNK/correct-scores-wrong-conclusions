@@ -54,8 +54,8 @@ Reliability-Adjusted Benchmark}
 \maketitle
 
 \begin{abstract}
-This paper evaluates chaotic forecasting across model families under a shared
-out-of-sample protocol. The benchmark is a controlled $k$-pendulum system
+We compare forecasting methods for a chaotic system using one shared,
+out-of-sample protocol. The benchmark uses a controlled $k$-pendulum system
 ($k\in\{1,2,3\}$; chaotic for $k\ge2$) with four families: large language models
 (LLMs), Chronos, learned dynamics models (Neural~ODE, HNN, LNN), and classical
 integrators. Reliability-adjusted scoring assigns a fixed error to refusals and
@@ -64,18 +64,18 @@ learned dynamics models increase from $\sim$0.26 to 0.97--1.14\,rad for the
 stable variants and do not outperform the linearized-dynamics or nearest-neighbor
 baselines. Among the evaluated black-box methods, \texttt{kimi} has the lowest
 error ($0.538$\,rad), while known-physics integrators remain the numerical
-reference. Objective effects are architecture-dependent: mixed-$k$ rollout is
+reference. The training objective has different effects by architecture: mixed-$k$ rollout is
 lower for the Neural~ODE, whereas single-$k$ rollout is lower for the HNN. A
 matched disclosure experiment and inference probe find little evidence that the
-LLMs infer hidden physical constants; under this protocol they default to
+LLMs recover hidden physical constants; in this experiment they instead default to
 Earth-standard values. Cost is also asymmetric: the LLM run is the only
-per-query billed evaluation. The results indicate that in-sample evaluation can
-overestimate learned-dynamics performance and motivate controlled out-of-sample
-comparison of scientific forecasting methods.
+per-query billed evaluation. On this benchmark, in-sample scores overstate the
+performance of the learned dynamics models. The evaluation design is intended to
+make that gap visible when comparing scientific forecasting methods.
 \end{abstract}
 
 \section{Introduction}
-Comparing forecasting methods on a chaotic system depends on evaluation design: whether
+Results from a chaotic-forecasting benchmark depend on its evaluation design: whether
 models are scored in or out of sample, how failures are handled, and what information each
 model receives. We evaluate LLMs, time-series foundation models, learned dynamics models,
 and classical integrators on a shared $k$-link pendulum benchmark. Given state
@@ -85,20 +85,19 @@ domain-specific grading.
 
 \paragraph{Contributions.}
 \begin{enumerate}[leftmargin=1.4em,itemsep=2pt,topsep=2pt]
-\item A \textbf{cross-family evaluation protocol} in which all families are scored on the
+\item A \textbf{cross-family evaluation protocol} that scores all families on the
 same out-of-sample held-out trajectories, with a reliability-adjusted metric that assigns a
 fixed error to abstentions rather than discarding them
 (\S\ref{sec:metrics}, \S\ref{sec:reliability}).
-\item An \textbf{out-of-sample leaderboard}: tested off their training trajectories the
+\item An \textbf{out-of-sample comparison}: on trajectories outside their training set, the
 learned models reach 0.97--1.14\,rad for the stable variants (from $\sim$0.26 in-sample) and
 do not outperform the linearized-dynamics or nearest-neighbor baselines,
 while among the evaluated black-box methods the lowest error is obtained by \texttt{kimi}
-(0.538\,rad). Objective effects are architecture-dependent rather than uniformly favorable to
-one training loss (\S\ref{sec:objective}).
-\item \textbf{Chaos-appropriate analysis}: a predictability-horizon metric and a
-confound-free system-identification test. An unadjusted regime contrast suggests lower
-error when constants are hidden; a matched paired experiment and a direct inference probe
-indicate that this is a difficulty confound rather than parameter inference
+(0.538\,rad). No single training loss wins across architectures (\S\ref{sec:objective}).
+\item \textbf{Additional controls for chaotic dynamics}: a predictability-horizon metric and a
+system-identification test without the regime confound. The unadjusted contrast produces lower
+error when constants are hidden, but a matched paired experiment and direct inference probe
+show that the difference tracks problem difficulty, not parameter inference
 (\S\ref{sec:sysid}).
 \end{enumerate}
 
@@ -128,8 +127,8 @@ chaotic system rather than qualitative or symbolic reasoning.
 \paragraph{Choice of system.} We use the $k$-link pendulum to study evaluation methodology,
 not pendulums as an application domain. It provides a tunable chaos axis, high-precision
 ground truth, known equations for numerical references, and controllable constants for the
-system-identification test (\S\ref{sec:sysid}). The single controlled system is therefore a
-deliberate design choice.
+system-identification test (\S\ref{sec:sysid}). We use one controlled system so that these
+factors can be varied independently.
 
 \subsection{Task and systems}
 Given the state $\mathbf{s}_0=(\theta_1,\dots,\theta_k,\omega_1,\dots,\omega_k)\in
@@ -140,8 +139,8 @@ a $10$\,s pre-$t{=}0$ context window (used only by the time-series models). Init
 conditions are sampled $\theta_i\sim\mathcal{U}(-3,3)$\,rad,
 $\omega_i\sim\mathcal{U}(-1,1)$\,rad/s with a fixed seed. Because the labels are produced by
 RK4 at this step, the RK4 baseline reported later (the same integrator at a $10{\times}$
-coarser $\Delta t{=}10^{-2}$) is a numerical reference by construction rather than an independent
-competitor; Euler and the symplectic integrator are distinct known-physics methods. Inputs
+coarser $\Delta t{=}10^{-2}$) is a numerical reference by construction, not an independent
+competitor. Euler and the symplectic integrator are distinct known-physics methods. Inputs
 available to each family are stated in \S\ref{sec:inputs}.
 
 \subsection{Regimes and grid}
@@ -265,7 +264,7 @@ All learned models are trained on the same nine trajectories---one per (k, regim
 
 \paragraph{Integrators.} Euler, RK4, and St\"ormer--Verlet (symplectic) at $\Delta
 t{=}0.01$\,s using the exact equations of motion; their error is from discretization alone.
-RK4 is the data-generating process and serves as a numerical reference rather than an independent
+RK4 generates the data and is included as a numerical reference, not an independent
 competitor.
 
 \paragraph{Baselines.} Four reference baselines use the same grid: persistence
@@ -305,7 +304,7 @@ this benchmark is largely attributable to evaluation on their training trajector
 \centering\small
 \caption{Out-of-sample leaderboard on the shared held-out set ($360$ cells, horizons
 $\{1,10\}$\,s). Reliability-adjusted mean angle error (rad): unanswered or missing cells
-scored at $\pi/2$; $95\%$ bootstrap CI. RK4 is the data-generating process and is reported
+scored at $\pi/2$; $95\%$ bootstrap CI. RK4 generates the data and is included
 as a numerical reference. Methods new in this work are marked $\dagger$; simple baselines are
 marked $\ddagger$.}\label{tab:overall}
 \begin{tabular}{rlcccl}
@@ -336,7 +335,7 @@ marked $\ddagger$.}\label{tab:overall}
 \end{table}
 
 \paragraph{Effect of the reliability adjustment.} \texttt{grok} answers $82\%$ of the grid
-and \texttt{lnn} $66\%$; scoring those abstentions at $\pi/2$, rather than averaging over
+and \texttt{lnn} $66\%$; scoring those abstentions at $\pi/2$, instead of averaging over
 answered cells, places them below more reliable methods. Averaging over answered cells alone would
 rank the least reliable models higher.
 
@@ -537,28 +536,28 @@ deepseek-v4-pro & 1.425 & 1.382 & $-0.042$ \\
 
 \subsection{Univariate versus multivariate time-series modeling}
 \label{sec:multivariate}
-The leaderboard uses one trajectory per cell, which resolves the large gaps between families
-but not small effects. To test whether a time-series model that shares information across the
-$2k$ state channels benefits from their coupling, we compare Chronos-2 in univariate and
+The leaderboard uses one trajectory per cell. That is enough to separate families with large
+error gaps, but not to estimate small differences. To test whether a time-series model that
+shares information across the $2k$ state channels benefits from their coupling, we compare
+Chronos-2 in univariate and
 multivariate modes with $20$ trajectories per (k, regime) cell ($n{=}720$ paired samples) on
 identical trajectories. The two modes are not distinguishable: mean error $0.549$ (uni, $95\%$
 CI $[0.505,0.593]$) vs.\ $0.543$ (multi, $[0.498,0.589]$). The paired difference is
 $+0.005$\,rad overall, with no significant effect at any $k$ or at horizons $1$\,s and
 $10$\,s; the per-$k$ trend at $n{=}1$ (multivariate appearing to help most at $k{=}3$) goes
 to zero at $n{=}720$. A nominal overall $p{=}0.025$ is driven by a sub-$0.01$\,rad bias at
-the $0.01$\,s horizon and is not significant after Holm correction. We report a null result:
-cross-channel coupling gives no measurable benefit for time-series forecasting of this system.
+the $0.01$\,s horizon and is not significant after Holm correction. The experiment detects no
+measurable benefit from cross-channel coupling for this system.
 
 \section{Discussion}
-\paragraph{In-sample evaluation.} Scored on held-out rather than training trajectories, the
+\paragraph{In-sample evaluation.} On held-out trajectories, the
 learned dynamics models increase their error and rank below a zero-shot time-series model, a
-zero-shot LLM, and simple baselines. The in-sample ranking is not supported under held-out
-evaluation; a learned
-simulator must be reported on trajectories it never saw. After equalizing hidden-regime
-constants, objective effects are model-dependent rather than uniformly explained by a single
-training loss.
+zero-shot LLM, and simple baselines. The in-sample ranking does not carry over to held-out
+evaluation. Learned simulators should therefore be reported on trajectories excluded from
+training. After equalizing the hidden-regime constants, the effect of the objective still
+differs by model.
 
-\paragraph{Reliability.} Scoring abstentions at $\pi/2$, rather than averaging over answered
+\paragraph{Reliability.} Scoring abstentions at $\pi/2$, instead of averaging over answered
 cells, lowers \texttt{grok} and the LNN; chain-of-thought has no significant paired effect.
 
 \paragraph{System identification.} The apparent lower error when constants are hidden is a
@@ -570,9 +569,9 @@ that the evaluated models infer hidden physical parameters.
 released per-cell records contain prompt and completion token counts, giving an estimated
 nominal API cost of \$110.38 for $3{,}960$ cells (${\sim}\$0.03$/forecast under the June~2026
 deployments, prompts, and pricing assumptions). Numerical, learned, and Chronos runs have no
-per-query API charge when run locally, but still use local compute. Rankings should be
-expected to depend on the system; the transferable part is the evaluation protocol:
-out-of-sample scoring, reliability adjustment, and matched disclosure control.
+per-query API charge when run locally, but still use local compute. The rankings are specific
+to this system. The reusable part of the study is the protocol: out-of-sample scoring,
+reliability adjustment, and matched disclosure controls.
 
 \section{Limitations}
 \label{sec:limitations}
@@ -587,17 +586,16 @@ undisclosed pretraining budgets. The learned models also use only nine training 
 so data- and capacity-scaling remain open. HNNs and LNNs cannot represent dissipation by
 construction, so the conservation test is restricted to the undamped regime. Contamination
 from pendulum equations in training corpora cannot be excluded. Finally, the numerical
-results cover one system and three LLMs; extension to other chaotic systems and model sets is
-future work.
+results cover one system and three LLMs; broader system and model coverage remains untested.
 
 \section{Conclusion}
-On a controlled $k$-pendulum benchmark, held-out evaluation substantially changes the
+On the controlled $k$-pendulum benchmark, held-out evaluation changes the
 learned-dynamics ranking: off training trajectories, learned models increase in error and do
 not exceed simple baselines. Among evaluated black-box methods, \texttt{kimi} has the lowest
 reliability-adjusted error; known-equation integrators remain the numerical reference.
-Reliability-adjusted scoring and matched disclosure controls change the interpretation and
-find little evidence of in-context system identification. The main contribution is the
-protocol rather than the version-specific ranking.
+Reliability-adjusted scoring and the matched disclosure controls provide little evidence of
+in-context system identification. The version-specific ordering is not intended to generalize
+across systems or API versions. The evaluation protocol is the transferable result.
 
 \paragraph{Reproducibility.} Code, prompts (Appendix~A), trained weights, held-out
 specification, and per-cell checkpoints are released. Training uses seed $42$; held-out
