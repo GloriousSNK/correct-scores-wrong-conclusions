@@ -1,0 +1,283 @@
+{
+  "seed": 770022,
+  "trials": 32,
+  "invariances": [
+    {
+      "m": "a*m",
+      "damping": "a*damping"
+    },
+    {
+      "L": "b*L",
+      "g": "b*g",
+      "damping": "b^2*damping"
+    }
+  ],
+  "single_link_identifiable_groups": {
+    "gravity_over_length": 4.0,
+    "normalized_damping": 0.06433823529411765
+  },
+  "single_link_transformed_groups": {
+    "gravity_over_length": 4.0,
+    "normalized_damping": 0.06433823529411765
+  },
+  "worst_max_derivative_difference": 5.329070518200751e-15,
+  "worst_max_trajectory_difference": 7.66053886991358e-14,
+  "records": [
+    {
+      "trial": 0,
+      "k": 3,
+      "mass_scale": 0.2662159377878828,
+      "length_scale": 1.5243413765168852,
+      "max_derivative_difference": 8.881784197001252e-16,
+      "max_trajectory_difference": 7.216449660063518e-16
+    },
+    {
+      "trial": 1,
+      "k": 2,
+      "mass_scale": 1.0976255483955386,
+      "length_scale": 1.198053144799693,
+      "max_derivative_difference": 8.881784197001252e-16,
+      "max_trajectory_difference": 1.1102230246251565e-16
+    },
+    {
+      "trial": 2,
+      "k": 1,
+      "mass_scale": 3.3419517617195957,
+      "length_scale": 0.6906138707426774,
+      "max_derivative_difference": 8.881784197001252e-16,
+      "max_trajectory_difference": 2.220446049250313e-16
+    },
+    {
+      "trial": 3,
+      "k": 2,
+      "mass_scale": 1.5617731104277732,
+      "length_scale": 1.458843100067322,
+      "max_derivative_difference": 1.7763568394002505e-15,
+      "max_trajectory_difference": 1.7763568394002505e-15
+    },
+    {
+      "trial": 4,
+      "k": 2,
+      "mass_scale": 3.6159250719588503,
+      "length_scale": 1.99273461902786,
+      "max_derivative_difference": 2.6645352591003757e-15,
+      "max_trajectory_difference": 8.881784197001252e-16
+    },
+    {
+      "trial": 5,
+      "k": 2,
+      "mass_scale": 0.36027906350613004,
+      "length_scale": 1.3941552349937834,
+      "max_derivative_difference": 1.7763568394002505e-15,
+      "max_trajectory_difference": 5.329070518200751e-15
+    },
+    {
+      "trial": 6,
+      "k": 1,
+      "mass_scale": 2.912159614043404,
+      "length_scale": 0.8991117112002318,
+      "max_derivative_difference": 4.440892098500626e-16,
+      "max_trajectory_difference": 4.440892098500626e-16
+    },
+    {
+      "trial": 7,
+      "k": 2,
+      "mass_scale": 2.405888906831832,
+      "length_scale": 1.2160580610317642,
+      "max_derivative_difference": 2.6645352591003757e-15,
+      "max_trajectory_difference": 1.3322676295501878e-15
+    },
+    {
+      "trial": 8,
+      "k": 3,
+      "mass_scale": 3.0204813046610073,
+      "length_scale": 0.9808631623343794,
+      "max_derivative_difference": 8.881784197001252e-16,
+      "max_trajectory_difference": 2.220446049250313e-15
+    },
+    {
+      "trial": 9,
+      "k": 2,
+      "mass_scale": 0.975156289107271,
+      "length_scale": 0.750113520024442,
+      "max_derivative_difference": 8.881784197001252e-16,
+      "max_trajectory_difference": 3.552713678800501e-15
+    },
+    {
+      "trial": 10,
+      "k": 2,
+      "mass_scale": 2.270194742705298,
+      "length_scale": 1.9324850876579946,
+      "max_derivative_difference": 3.1086244689504383e-15,
+      "max_trajectory_difference": 8.881784197001252e-16
+    },
+    {
+      "trial": 11,
+      "k": 3,
+      "mass_scale": 3.2603646772146107,
+      "length_scale": 1.0687424152544525,
+      "max_derivative_difference": 5.329070518200751e-15,
+      "max_trajectory_difference": 7.66053886991358e-14
+    },
+    {
+      "trial": 12,
+      "k": 2,
+      "mass_scale": 0.5767556948817552,
+      "length_scale": 0.9714674702308533,
+      "max_derivative_difference": 0.0,
+      "max_trajectory_difference": 4.440892098500626e-16
+    },
+    {
+      "trial": 13,
+      "k": 2,
+      "mass_scale": 2.185027577826641,
+      "length_scale": 1.585571777439434,
+      "max_derivative_difference": 8.881784197001252e-16,
+      "max_trajectory_difference": 8.881784197001252e-16
+    },
+    {
+      "trial": 14,
+      "k": 1,
+      "mass_scale": 3.398682696693133,
+      "length_scale": 1.4614451024396042,
+      "max_derivative_difference": 1.1102230246251565e-16,
+      "max_trajectory_difference": 1.3877787807814457e-16
+    },
+    {
+      "trial": 15,
+      "k": 2,
+      "mass_scale": 1.1532356551710783,
+      "length_scale": 1.41984368696845,
+      "max_derivative_difference": 3.1225022567582528e-15,
+      "max_trajectory_difference": 2.6645352591003757e-15
+    },
+    {
+      "trial": 16,
+      "k": 1,
+      "mass_scale": 2.641085427702306,
+      "length_scale": 1.5670499864931353,
+      "max_derivative_difference": 0.0,
+      "max_trajectory_difference": 3.3306690738754696e-16
+    },
+    {
+      "trial": 17,
+      "k": 1,
+      "mass_scale": 3.2768431380891636,
+      "length_scale": 0.9643879747270894,
+      "max_derivative_difference": 4.440892098500626e-16,
+      "max_trajectory_difference": 0.0
+    },
+    {
+      "trial": 18,
+      "k": 1,
+      "mass_scale": 2.3020819387144504,
+      "length_scale": 0.7255019370311839,
+      "max_derivative_difference": 4.440892098500626e-16,
+      "max_trajectory_difference": 4.440892098500626e-16
+    },
+    {
+      "trial": 19,
+      "k": 1,
+      "mass_scale": 0.6513344847708262,
+      "length_scale": 0.7998258334587738,
+      "max_derivative_difference": 0.0,
+      "max_trajectory_difference": 1.1102230246251565e-15
+    },
+    {
+      "trial": 20,
+      "k": 3,
+      "mass_scale": 2.5891981909661683,
+      "length_scale": 0.9402602169498682,
+      "max_derivative_difference": 2.3869795029440866e-15,
+      "max_trajectory_difference": 1.1102230246251565e-15
+    },
+    {
+      "trial": 21,
+      "k": 1,
+      "mass_scale": 3.97918354566147,
+      "length_scale": 1.1710066309988354,
+      "max_derivative_difference": 1.7763568394002505e-15,
+      "max_trajectory_difference": 4.440892098500626e-16
+    },
+    {
+      "trial": 22,
+      "k": 1,
+      "mass_scale": 0.5777826176764449,
+      "length_scale": 0.5031647673604147,
+      "max_derivative_difference": 5.551115123125783e-17,
+      "max_trajectory_difference": 1.1102230246251565e-16
+    },
+    {
+      "trial": 23,
+      "k": 3,
+      "mass_scale": 0.5205691448076897,
+      "length_scale": 1.5590116468752158,
+      "max_derivative_difference": 2.220446049250313e-15,
+      "max_trajectory_difference": 2.6645352591003757e-14
+    },
+    {
+      "trial": 24,
+      "k": 2,
+      "mass_scale": 3.5483585544437135,
+      "length_scale": 1.7049835059477467,
+      "max_derivative_difference": 1.7763568394002505e-15,
+      "max_trajectory_difference": 8.881784197001252e-16
+    },
+    {
+      "trial": 25,
+      "k": 2,
+      "mass_scale": 2.1083493939964306,
+      "length_scale": 1.5521910348835524,
+      "max_derivative_difference": 4.440892098500626e-16,
+      "max_trajectory_difference": 8.881784197001252e-16
+    },
+    {
+      "trial": 26,
+      "k": 1,
+      "mass_scale": 0.9584598691247211,
+      "length_scale": 1.5311934508280367,
+      "max_derivative_difference": 0.0,
+      "max_trajectory_difference": 5.551115123125783e-17
+    },
+    {
+      "trial": 27,
+      "k": 2,
+      "mass_scale": 2.7346238781396908,
+      "length_scale": 1.4992091999644146,
+      "max_derivative_difference": 4.440892098500626e-16,
+      "max_trajectory_difference": 4.440892098500626e-16
+    },
+    {
+      "trial": 28,
+      "k": 3,
+      "mass_scale": 2.515101660706441,
+      "length_scale": 1.1113607263019003,
+      "max_derivative_difference": 1.7763568394002505e-15,
+      "max_trajectory_difference": 3.1086244689504383e-15
+    },
+    {
+      "trial": 29,
+      "k": 2,
+      "mass_scale": 3.4909090204702897,
+      "length_scale": 0.7699204538255087,
+      "max_derivative_difference": 8.326672684688674e-17,
+      "max_trajectory_difference": 3.3306690738754696e-16
+    },
+    {
+      "trial": 30,
+      "k": 1,
+      "mass_scale": 0.4932698742280265,
+      "length_scale": 1.5157403670889151,
+      "max_derivative_difference": 2.7755575615628914e-17,
+      "max_trajectory_difference": 4.163336342344337e-17
+    },
+    {
+      "trial": 31,
+      "k": 3,
+      "mass_scale": 2.2538932182307825,
+      "length_scale": 1.6060668833496705,
+      "max_derivative_difference": 4.440892098500626e-16,
+      "max_trajectory_difference": 2.6645352591003757e-15
+    }
+  ]
+}

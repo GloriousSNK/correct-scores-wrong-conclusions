@@ -1,0 +1,66 @@
+{
+  "system": "Lorenz-63",
+  "parameters": {
+    "sigma": 10.0,
+    "rho": 28.0,
+    "beta": 2.6666666666666665
+  },
+  "ground_truth": {
+    "integrator": "RK4",
+    "dt": 0.01
+  },
+  "train_seed": 42,
+  "held_seeds": [
+    20260620,
+    20260621,
+    20260622,
+    20260623,
+    20260624
+  ],
+  "train_trajectories": 20,
+  "held_trajectories_per_seed": 5,
+  "context_seconds": 5.0,
+  "forecast_seconds": 2.0,
+  "horizons": [
+    0.1,
+    0.5,
+    1.0
+  ],
+  "models": [
+    "rk4",
+    "euler",
+    "persistence",
+    "neural-ode",
+    "chronos2-uni",
+    "chronos2-multi",
+    "sindy",
+    "nvar"
+  ],
+  "chronos_model_id": "amazon/chronos-2",
+  "neural_ode": {
+    "hidden_width": 128,
+    "hidden_layers": 2,
+    "epochs": 300,
+    "training_target": "analytic state derivative"
+  },
+  "primary_metric": "mean coordinate MAE divided by training-history coordinate standard deviation",
+  "normalization_scale_xyz": [
+    7.958862811018069,
+    9.089865044406997,
+    8.873663401126926
+  ],
+  "failure_policy": "store null errors and report success rate separately",
+  "sindy": {
+    "library": "polynomial degree 2",
+    "optimizer": "STLSQ",
+    "threshold": 0.0001,
+    "validation_derivative_mse": 6.835852516976518e-27,
+    "training_target": "analytic state derivative"
+  },
+  "nvar": {
+    "delays": 3,
+    "polynomial_degree": 2,
+    "ridge_alpha": 1.0,
+    "validation_increment_mse": 0.00020502197456416895
+  }
+}
