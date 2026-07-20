@@ -172,21 +172,6 @@ error has not saturated (\S\ref{sec:metrics}), giving $180\times2=360$ cells per
 report no in-sample numbers and quantify the size of the in-sample effect directly
 (\S\ref{sec:reliability}).
 
-\begin{table}[tbp]
-\centering\small
-\caption{Physical regimes. \texttt{changed\_hidden} withholds the constants.}
-\label{tab:regimes}
-\begin{tabular}{lccccc}
-\toprule
-Regime & $g$ (m/s$^2$) & $L$ (m) & $m$ (kg) & damping & disclosed \\
-\midrule
-\texttt{normal} & 9.81 & 1.0 & 1.0 & 0.0 & --- \\
-\texttt{changed\_disclosed} & 3.71 & 1.4/0.7/1.1 & 2.0/0.6/1.5 & 0.05 & yes \\
-\texttt{changed\_hidden} & 1.62 & 0.8/1.2/0.9 & 0.5/1.8/1.0 & 0.10 & no \\
-\bottomrule
-\end{tabular}
-\end{table}
-
 \subsection{Inputs and grouping}
 \label{sec:inputs}
 Table~\ref{tab:inputs} states what each family receives. Chronos is a time-series model, so
@@ -446,26 +431,6 @@ architecture comparison; within each row, they show that the nine-trajectory pri
 is partly data-limited, while more data alone does not close the gap to known-equation
 integration.
 
-\begin{table}[tbp]
-\centering\small
-\caption{Nested training-budget study. Reliability-adjusted pendulum error (rad), averaged
-over three training initializations and two held-out seeds. Intervals hierarchically resample
-initializations and held-out seeds. HNN is evaluated on the undamped normal regime only.}
-\label{tab:budget}
-\begin{tabular}{llrcc}
-\toprule
-Model & Scope & Trajectories & Error & 95\% CI \\
-\midrule
-HNN & normal & 3 & 1.269 & [1.209, 1.349] \\
-HNN & normal & 15 & 0.974 & [0.891, 1.062] \\
-HNN & normal & 60 & 0.981 & [0.856, 1.113] \\
-Neural ODE & all regimes & 9 & 1.090 & [1.011, 1.207] \\
-Neural ODE & all regimes & 45 & 0.968 & [0.923, 1.028] \\
-Neural ODE & all regimes & 180 & 0.861 & [0.829, 0.907] \\
-\bottomrule
-\end{tabular}
-\end{table}
-
 \subsection{Cross-system test: Lorenz--63}
 \label{sec:lorenz}
 We test whether the pendulum conclusions transfer to Lorenz--63, a chaotic system with a
@@ -514,45 +479,6 @@ separable.
 
 % (Table tab:horizon relocated to Appendix D)
 
-\begin{figure}[tbp]
-\centering
-\begin{tikzpicture}
-\begin{semilogxaxis}[
-  width=0.9\linewidth, height=6.2cm,
-  xlabel={Prediction horizon $T$ (s)}, ylabel={Mean angle error (rad)},
-  xmin=0.008, xmax=75, ymin=0, ymax=1.68,
-  xtick={0.01,0.1,1,10,60}, log ticks with fixed point,
-  legend columns=4,
-  legend style={at={(0.5,1.03)}, anchor=south, font=\scriptsize, draw=none, fill=none,
-                cells={anchor=west}, /tikz/every even column/.append style={column sep=6pt}},
-  grid=both, grid style={gray!18}, tick align=outside,
-  every axis plot/.append style={thick, mark size=1.5pt},
-]
-\addplot+[mark=*]         coordinates {(0.01,0.000) (1,0.000) (10,0.118) (60,0.271)};
-\addlegendentry{rk4 (reference)}
-\addplot+[mark=triangle*] coordinates {(0.01,0.000) (1,0.042) (10,0.368) (60,0.303)};
-\addlegendentry{symplectic}
-\addplot+[mark=square*]   coordinates {(0.01,0.000) (1,0.067) (10,0.743) (60,0.781)};
-\addlegendentry{euler}
-\addplot+[mark=diamond*]  coordinates {(1,0.457) (10,0.619)};
-\addlegendentry{kimi (LLM)}
-\addplot+[mark=pentagon*] coordinates {(0.01,0.040) (1,0.591) (10,0.777) (60,0.764)};
-\addlegendentry{chronos-2}
-\addplot+[mark=o]         coordinates {(0.01,0.014) (1,1.012) (10,1.231) (60,1.047)};
-\addlegendentry{neural-ode (roll.)}
-\addplot+[mark=x]         coordinates {(0.01,0.472) (1,1.259) (10,1.439) (60,1.485)};
-\addlegendentry{lnn}
-\draw[dashed, gray!70] (axis cs:0.008,1.5708) -- (axis cs:75,1.5708);
-\node[anchor=west, gray, font=\scriptsize] at (axis cs:0.011,1.62) {random guess $\pi/2$};
-\end{semilogxaxis}
-\end{tikzpicture}
-\caption{Error growth with prediction horizon (out-of-sample, reliability-adjusted; log time
-axis). The numerical integrators stay near zero until ${\sim}10$\,s; every black-box family
-saturates near the chaotic noise floor by $1$\,s. LLMs were evaluated at $\{1,10\}$\,s only.
-Dashed line: random-guess baseline $\pi/2$.}
-\label{fig:errorgrowth}
-\end{figure}
-
 \paragraph{Breakdown by $k$ and regime.}
 \label{sec:breakdown}
 Tables~\ref{tab:perk} and~\ref{tab:perregime} (Appendix~C) report out-of-sample error by
@@ -579,29 +505,6 @@ diverging or exceeding the rollout timeout after memory-safe recovery. We make n
 architecture-wide claim about LNNs; under our implementation and protocol the LNN was
 numerically unstable and generalized poorly out of sample.
 
-\begin{table}[tbp]
-\centering\small
-\caption{Training-objective study, out-of-sample mean angle error (rad) on the shared
-held-out grid (horizons $\{1,10\}$\,s); architecture fixed, loss/window varied. Significance
-from a powered paired study on the full four-horizon held-out set ($n{=}720$,
-Wilcoxon$+$Holm).}\label{tab:objective}
-\begin{tabular}{llcl}
-\toprule
-Model & Objective & Err & vs.\ prev.\ row \\
-\midrule
-\multirow{3}{*}{Neural ODE}
- & derivative MSE & 1.110 & --- \\
- & rollout (single-$k$) & 1.121 & n.s.\ ($p_{\mathrm{Holm}}{=}0.188$) \\
- & mixed-$k$ & 1.036 & sig.\ ($p_{\mathrm{Holm}}{=}0.013$) \\
-\midrule
-\multirow{3}{*}{HNN}
- & derivative MSE & 1.138 & --- \\
- & rollout (single-$k$) & 0.972 & sig.\ ($p_{\mathrm{Holm}}{=}1.95{\times}10^{-4}$) \\
- & mixed-$k$ & 1.066 & sig.\ higher ($p_{\mathrm{Holm}}{=}0.014$) \\
-\bottomrule
-\end{tabular}
-\end{table}
-
 \paragraph{Physical-fidelity check.}
 \label{sec:energy}
 Hamiltonian and Lagrangian networks target structure preservation, so we evaluate energy
@@ -614,30 +517,6 @@ Changing the integrator therefore does not account for the HNN's drift.
 At matched objective, HNN drift is also comparable to Neural~ODE drift; the LNN is unstable,
 with $27\%$ bounded rollouts. These results use the same nine-trajectory learned-model budget
 as the main comparison.
-
-\begin{table}[tbp]
-\centering\small
-\caption{Physical fidelity on the undamped (\texttt{normal}) regime: mean absolute energy
-drift over a $10$\,s rollout, normalized by $E^{*}{=}g\sum_i m_i L_i$ (0 = perfect
-conservation), and fraction of bounded rollouts. HNN drift is nearly unchanged when its rollout
-uses a symplectic integrator.}\label{tab:energy}
-\begin{tabular}{llcc}
-\toprule
-Model & Family & Energy drift & Stable \\
-\midrule
-rk4 & numerical & 0.000 & 100\% \\
-symplectic & numerical & 0.066 & 100\% \\
-euler & numerical & 0.494 & 100\% \\
-neural-ode-rollout-mixed & learned & 0.779 & 100\% \\
-hnn-rollout-mixed & learned & 0.865 & 100\% \\
-neural-ode-rollout & learned & 0.872 & 100\% \\
-hnn-rollout & learned & 2.065 & 100\% \\
-lnn & learned & 4.038 & 27\% \\
-hnn & learned & 4.270 & 100\% \\
-neural-ode & learned & 4.346 & 100\% \\
-\bottomrule
-\end{tabular}
-\end{table}
 
 \paragraph{Multivariate time-series check.}
 \label{sec:multivariate}
@@ -870,7 +749,130 @@ lnn & 1.511 & 1.408 & 1.127 \\
 \section{Additional result tables}
 \label{app:extra}
 Full per-model values for the horizon breakdown (\S\ref{sec:behavior}) and the predictability
-horizon (\S\ref{sec:sysid}). The corresponding summary statistics appear in the main text.
+horizon (\S\ref{sec:sysid}), together with the regime definitions and the training-budget,
+training-objective, and physical-fidelity studies. The corresponding summary statistics appear
+in the main text.
+
+\begin{figure}[tbp]
+\centering
+\begin{tikzpicture}
+\begin{semilogxaxis}[
+  width=0.9\linewidth, height=6.2cm,
+  xlabel={Prediction horizon $T$ (s)}, ylabel={Mean angle error (rad)},
+  xmin=0.008, xmax=75, ymin=0, ymax=1.68,
+  xtick={0.01,0.1,1,10,60}, log ticks with fixed point,
+  legend columns=4,
+  legend style={at={(0.5,1.03)}, anchor=south, font=\scriptsize, draw=none, fill=none,
+                cells={anchor=west}, /tikz/every even column/.append style={column sep=6pt}},
+  grid=both, grid style={gray!18}, tick align=outside,
+  every axis plot/.append style={thick, mark size=1.5pt},
+]
+\addplot+[mark=*]         coordinates {(0.01,0.000) (1,0.000) (10,0.118) (60,0.271)};
+\addlegendentry{rk4 (reference)}
+\addplot+[mark=triangle*] coordinates {(0.01,0.000) (1,0.042) (10,0.368) (60,0.303)};
+\addlegendentry{symplectic}
+\addplot+[mark=square*]   coordinates {(0.01,0.000) (1,0.067) (10,0.743) (60,0.781)};
+\addlegendentry{euler}
+\addplot+[mark=diamond*]  coordinates {(1,0.457) (10,0.619)};
+\addlegendentry{kimi (LLM)}
+\addplot+[mark=pentagon*] coordinates {(0.01,0.040) (1,0.591) (10,0.777) (60,0.764)};
+\addlegendentry{chronos-2}
+\addplot+[mark=o]         coordinates {(0.01,0.014) (1,1.012) (10,1.231) (60,1.047)};
+\addlegendentry{neural-ode (roll.)}
+\addplot+[mark=x]         coordinates {(0.01,0.472) (1,1.259) (10,1.439) (60,1.485)};
+\addlegendentry{lnn}
+\draw[dashed, gray!70] (axis cs:0.008,1.5708) -- (axis cs:75,1.5708);
+\node[anchor=west, gray, font=\scriptsize] at (axis cs:0.011,1.62) {random guess $\pi/2$};
+\end{semilogxaxis}
+\end{tikzpicture}
+\caption{Error growth with prediction horizon (out-of-sample, reliability-adjusted; log time
+axis). The numerical integrators stay near zero until ${\sim}10$\,s; every black-box family
+saturates near the chaotic noise floor by $1$\,s. LLMs were evaluated at $\{1,10\}$\,s only.
+Dashed line: random-guess baseline $\pi/2$.}
+\label{fig:errorgrowth}
+\end{figure}
+
+\begin{table}[tbp]
+\centering\small
+\caption{Physical regimes. \texttt{changed\_hidden} withholds the constants.}
+\label{tab:regimes}
+\begin{tabular}{lccccc}
+\toprule
+Regime & $g$ (m/s$^2$) & $L$ (m) & $m$ (kg) & damping & disclosed \\
+\midrule
+\texttt{normal} & 9.81 & 1.0 & 1.0 & 0.0 & --- \\
+\texttt{changed\_disclosed} & 3.71 & 1.4/0.7/1.1 & 2.0/0.6/1.5 & 0.05 & yes \\
+\texttt{changed\_hidden} & 1.62 & 0.8/1.2/0.9 & 0.5/1.8/1.0 & 0.10 & no \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[tbp]
+\centering\small
+\caption{Nested training-budget study. Reliability-adjusted pendulum error (rad), averaged
+over three training initializations and two held-out seeds. Intervals hierarchically resample
+initializations and held-out seeds. HNN is evaluated on the undamped normal regime only.}
+\label{tab:budget}
+\begin{tabular}{llrcc}
+\toprule
+Model & Scope & Trajectories & Error & 95\% CI \\
+\midrule
+HNN & normal & 3 & 1.269 & [1.209, 1.349] \\
+HNN & normal & 15 & 0.974 & [0.891, 1.062] \\
+HNN & normal & 60 & 0.981 & [0.856, 1.113] \\
+Neural ODE & all regimes & 9 & 1.090 & [1.011, 1.207] \\
+Neural ODE & all regimes & 45 & 0.968 & [0.923, 1.028] \\
+Neural ODE & all regimes & 180 & 0.861 & [0.829, 0.907] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[tbp]
+\centering\small
+\caption{Training-objective study, out-of-sample mean angle error (rad) on the shared
+held-out grid (horizons $\{1,10\}$\,s); architecture fixed, loss/window varied. Significance
+from a powered paired study on the full four-horizon held-out set ($n{=}720$,
+Wilcoxon$+$Holm).}\label{tab:objective}
+\begin{tabular}{llcl}
+\toprule
+Model & Objective & Err & vs.\ prev.\ row \\
+\midrule
+\multirow{3}{*}{Neural ODE}
+ & derivative MSE & 1.110 & --- \\
+ & rollout (single-$k$) & 1.121 & n.s.\ ($p_{\mathrm{Holm}}{=}0.188$) \\
+ & mixed-$k$ & 1.036 & sig.\ ($p_{\mathrm{Holm}}{=}0.013$) \\
+\midrule
+\multirow{3}{*}{HNN}
+ & derivative MSE & 1.138 & --- \\
+ & rollout (single-$k$) & 0.972 & sig.\ ($p_{\mathrm{Holm}}{=}1.95{\times}10^{-4}$) \\
+ & mixed-$k$ & 1.066 & sig.\ higher ($p_{\mathrm{Holm}}{=}0.014$) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[tbp]
+\centering\small
+\caption{Physical fidelity on the undamped (\texttt{normal}) regime: mean absolute energy
+drift over a $10$\,s rollout, normalized by $E^{*}{=}g\sum_i m_i L_i$ (0 = perfect
+conservation), and fraction of bounded rollouts. HNN drift is nearly unchanged when its rollout
+uses a symplectic integrator.}\label{tab:energy}
+\begin{tabular}{llcc}
+\toprule
+Model & Family & Energy drift & Stable \\
+\midrule
+rk4 & numerical & 0.000 & 100\% \\
+symplectic & numerical & 0.066 & 100\% \\
+euler & numerical & 0.494 & 100\% \\
+neural-ode-rollout-mixed & learned & 0.779 & 100\% \\
+hnn-rollout-mixed & learned & 0.865 & 100\% \\
+neural-ode-rollout & learned & 0.872 & 100\% \\
+hnn-rollout & learned & 2.065 & 100\% \\
+lnn & learned & 4.038 & 27\% \\
+hnn & learned & 4.270 & 100\% \\
+neural-ode & learned & 4.346 & 100\% \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \begin{table}[tbp]
 \centering\small
