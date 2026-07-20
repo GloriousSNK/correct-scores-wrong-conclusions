@@ -120,7 +120,10 @@ commit `.env` or other credential files.
 
 ## Authors
 
-Sriman Narayan Kandi, Trishant Srinivasan, Shrithik Shahapure.
+Sriman Narayan Kandi, Trishant Srinivasan.
+
+Shrithik Shahapure provided compute access for the Azure AI Foundry large language model
+evaluations and helped run those API evaluations.
 
 ## Citation
 
@@ -128,7 +131,7 @@ Sriman Narayan Kandi, Trishant Srinivasan, Shrithik Shahapure.
 @inproceedings{kandi2026forecastingchaos,
   title  = {Forecasting Chaos Across Model Families: An Out-of-Sample,
             Reliability-Adjusted Benchmark},
-  author = {Kandi, Sriman Narayan and Srinivasan, Trishant and Shahapure, Shrithik},
+  author = {Kandi, Sriman Narayan and Srinivasan, Trishant},
   year   = {2026}
 }
 ```
