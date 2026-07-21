@@ -51,7 +51,9 @@ def build_eval_cells(*, predictors: dict, systems: Iterable[int],
         for k in systems:
             for mv in movement_ids.get(k, []):
                 for regime in regimes:
-                    if not mv.startswith(f"k{k}_{regime}_"):
+                    # Seed-sweep datasets namespace IDs (for example,
+                    # ``seed_20260620__k1_normal_0000``) to avoid collisions.
+                    if f"k{k}_{regime}_" not in mv:
                         continue
                     for modality in mods:
                         for horizon in horizons:

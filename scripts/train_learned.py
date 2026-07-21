@@ -496,6 +496,8 @@ def main():
     ap.add_argument("--batch-size",  type=int, default=512)
     ap.add_argument("--hidden",      type=int, default=256)
     ap.add_argument("--layers",      type=int, default=3)
+    ap.add_argument("--seed",        type=int, default=42,
+                    help="random seed for initialization, shuffling, and sample selection")
     ap.add_argument("--models",      nargs="*",
                     default=["neural_ode", "hnn", "lnn"],
                     help="Which models to train (subset of: neural_ode hnn lnn)")
@@ -518,6 +520,11 @@ def main():
     except ImportError:
         sys.exit("torch is not installed. Run: pip install torch")
 
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(args.seed)
+
     device = (
         "cuda" if torch.cuda.is_available()
         else "mps" if torch.backends.mps.is_available()
@@ -533,7 +540,7 @@ def main():
     print(f"  {len(states):,} training samples loaded in {time.perf_counter()-t0:.1f}s")
 
     if args.max_samples is not None and args.max_samples < len(states):
-        rng = np.random.default_rng(42)
+        rng = np.random.default_rng(args.seed)
         idx = rng.choice(len(states), size=args.max_samples, replace=False)
         states, derivs, params = states[idx], derivs[idx], params[idx]
         print(f"  Subsampled to {len(states):,} samples")
@@ -564,7 +571,7 @@ def main():
                 args.dataset_dir, args.rollout_steps)
             print(f"  {len(states_0):,} rollout windows in {time.perf_counter()-t0:.1f}s")
             if args.max_samples is not None and args.max_samples < len(states_0):
-                rng = np.random.default_rng(42)
+                rng = np.random.default_rng(args.seed)
                 idx = rng.choice(len(states_0), size=args.max_samples, replace=False)
                 states_0, states_k, params_r = states_0[idx], states_k[idx], params_r[idx]
                 print(f"  Subsampled to {len(states_0):,} samples")
@@ -581,7 +588,7 @@ def main():
             model = _train_node(states, derivs, params, **train_kw)
             out = os.path.join(args.output_dir, "neural_ode.pt")
         torch.save(model.state_dict(), out)
-        print(f"  Saved → {out}")
+        print(f"  Saved: {out}")
 
     if "hnn" in args.models:
         if mixed:
@@ -601,7 +608,7 @@ def main():
                     args.dataset_dir, args.rollout_steps)
                 print(f"  {len(states_0):,} rollout windows in {time.perf_counter()-t0:.1f}s")
                 if args.max_samples is not None and args.max_samples < len(states_0):
-                    rng = np.random.default_rng(42)
+                    rng = np.random.default_rng(args.seed)
                     idx = rng.choice(len(states_0), size=args.max_samples, replace=False)
                     states_0, states_k, params_r = states_0[idx], states_k[idx], params_r[idx]
             # HNN rollout graph is deep — halve batch size to avoid OOM
@@ -619,15 +626,33 @@ def main():
             model = _train_hnn(states, derivs, params, **train_kw)
             out = os.path.join(args.output_dir, "hnn.pt")
         torch.save(model.state_dict(), out)
-        print(f"  Saved → {out}")
+        print(f"  Saved: {out}")
 
     if "lnn" in args.models:
         print("\nTraining LNN …")
         model = _train_lnn(states, derivs, params, **train_kw)
         out = os.path.join(args.output_dir, "lnn.pt")
         torch.save(model.state_dict(), out)
-        print(f"  Saved → {out}")
+        print(f"  Saved: {out}")
 
+    metadata = {
+        "dataset_dir": os.path.abspath(args.dataset_dir),
+        "manifest_trajectories": len(_load_manifest(args.dataset_dir)),
+        "training_samples_used": int(len(states)),
+        "models": args.models,
+        "epochs": args.epochs,
+        "learning_rate": args.lr,
+        "batch_size": args.batch_size,
+        "hidden": args.hidden,
+        "layers": args.layers,
+        "max_samples": args.max_samples,
+        "seed": args.seed,
+        "device": device,
+        "rollout_steps": args.rollout_steps,
+        "rollout_ks": args.rollout_ks,
+    }
+    with open(os.path.join(args.output_dir, "training_metadata.json"), "w", encoding="utf-8") as handle:
+        json.dump(metadata, handle, indent=2)
     print("\nDone.")
 
 

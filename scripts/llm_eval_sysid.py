@@ -3,8 +3,8 @@
 Reads results/dataset_llm_sysid/sysid_eval_set.json (matched constant sets,
 k in {1,2,3}). Evaluates each LLM on the SAME trajectories under two conditions:
   DISCLOSED  -> physical constants given in the prompt
-  HIDDEN     -> constants omitted; model must infer dynamics from ICs alone
-                AND additionally output its inferred constants (B2 probe).
+  HIDDEN     -> constants omitted; model estimates dynamics from the supplied
+                observations and additionally reports a parameter estimate.
 
 Everything else is held identical (no_cot, temperature 0) so the only toggle is
 disclosure -> a confound-free paired contrast. Reliability-adjusted scoring
@@ -34,6 +34,8 @@ except ImportError:
 
 from openai import AsyncOpenAI
 
+from bench.identifiability import equivalence_log_residual
+
 PI_2 = math.pi / 2.0
 HORIZONS = [1.0, 10.0]
 DISCLOSURES = ["disclosed", "hidden"]
@@ -57,8 +59,8 @@ SYSTEM_HIDDEN = (
     "You are a careful physicist predicting the future state of a "
     "k-pendulum (a chain of k point masses on massless rods, hinged in a "
     "planar chain, swinging under gravity with viscous damping). "
-    "The physical constants are NOT disclosed; infer the dynamics from the "
-    "initial conditions alone. Respond with ONLY a single JSON object on one "
+    "The physical constants are NOT disclosed; estimate the dynamics from the "
+    "observed states. Respond with ONLY a single JSON object on one "
     "line, no prose, no code fences. Schema: "
     "{\"theta\": [..k floats..], \"omega\": [..k floats..], "
     "\"inferred_constants\": {\"g\": float, \"L\": [..k floats..], "
@@ -68,6 +70,14 @@ SYSTEM_HIDDEN = (
     "m/s^2, L are rod lengths in m, m are point masses in kg, and damping is the "
     "viscous coefficient on omega. Give your best numerical estimate for every "
     "constant even if uncertain."
+)
+SYSTEM_CONTEXT = (
+    "You are a careful physicist predicting the future state of a k-pendulum "
+    "from an observed trajectory. Respond with ONLY one JSON object on one line, "
+    "with no prose or code fences. Schema: {\"theta\": [..k floats..], "
+    "\"omega\": [..k floats..], \"inferred_constants\": {\"g\": float, "
+    "\"L\": [..k floats..], \"m\": [..k floats..], \"damping\": float}}. "
+    "Give one numerical estimate for every field."
 )
 
 
@@ -84,15 +94,25 @@ CONSTANTS_BLOCK_HIDDEN = (
     "point masses, and damping are NOT disclosed. Infer them from the dynamics.\n")
 
 
-def build_user_prompt(k, theta0, omega0, disclosure, constants, horizon) -> str:
+def build_user_prompt(k, theta0, omega0, disclosure, constants, horizon,
+                      history=None) -> str:
     cblock = (constants_block_disclosed(constants) if disclosure == "disclosed"
               else CONSTANTS_BLOCK_HIDDEN)
-    tail = (f"Return theta and omega as length-{k} JSON arrays."
+    tail = (f"Return theta and omega as length-{k} JSON arrays, plus inferred_constants "
+            f"(g, L[{k}], m[{k}], damping)."
+            if history
+            else f"Return theta and omega as length-{k} JSON arrays."
             if disclosure == "disclosed"
             else (f"Return theta and omega as length-{k} JSON arrays, plus your "
                   f"inferred_constants (g, L[{k}], m[{k}], damping)."))
+    history_block = ""
+    if history:
+        rows = [f"  t={row['t']}: theta={row['theta']}, omega={row['omega']}"
+                for row in history]
+        history_block = "Observed trajectory ending at t=0:\n" + "\n".join(rows) + "\n"
     return (f"Number of links k = {k}\n"
             f"{cblock}"
+            f"{history_block}"
             f"Initial state at t=0:\n"
             f"  theta_0 (rad): {list(theta0)}\n"
             f"  omega_0 (rad/s): {list(omega0)}\n"
@@ -117,7 +137,7 @@ def _extract_json(text: str) -> dict:
     return json.loads(payload[start:end + 1])
 
 
-def parse_response(text: str, k: int, disclosure: str):
+def parse_response(text: str, k: int, disclosure: str, require_constants: bool = False):
     obj = _extract_json(text)
     theta, omega = obj.get("theta"), obj.get("omega")
     if not isinstance(theta, list) or not isinstance(omega, list):
@@ -127,7 +147,7 @@ def parse_response(text: str, k: int, disclosure: str):
     theta = [float(x) for x in theta]
     omega = [float(x) for x in omega]
     inferred = None
-    if disclosure == "hidden":
+    if disclosure == "hidden" or require_constants:
         ic = obj.get("inferred_constants")
         if isinstance(ic, dict):
             inferred = _coerce_constants(ic, k)
@@ -192,9 +212,12 @@ def _save(path, rec):
 async def run_cell(client, dep, max_tokens, timeout, retries, sem,
                    cell, true_theta, path):
     disclosure = cell["disclosure"]
-    sysmsg = SYSTEM_DISCLOSED if disclosure == "disclosed" else SYSTEM_HIDDEN
+    context_study = bool(cell.get("history"))
+    sysmsg = (SYSTEM_CONTEXT if context_study else
+              SYSTEM_DISCLOSED if disclosure == "disclosed" else SYSTEM_HIDDEN)
     user = build_user_prompt(cell["k"], cell["theta0"], cell["omega0"],
-                             disclosure, cell.get("constants"), cell["horizon"])
+                             disclosure, cell.get("constants"), cell["horizon"],
+                             history=cell.get("history"))
     messages = [{"role": "system", "content": sysmsg},
                 {"role": "user", "content": user}]
     last_err = None
@@ -223,7 +246,7 @@ async def run_cell(client, dep, max_tokens, timeout, retries, sem,
                         continue
                     try:
                         theta, omega, inferred = parse_response(
-                            cand, cell["k"], disclosure)
+                            cand, cell["k"], disclosure, require_constants=context_study)
                         perr = None
                         break
                     except Exception as e:
@@ -235,9 +258,17 @@ async def run_cell(client, dep, max_tokens, timeout, retries, sem,
                            "prompt_tokens": p_tok, "completion_tokens": c_tok,
                            "latency_s": latency}
                 else:
+                    identifiable = None
+                    if inferred is not None:
+                        try:
+                            identifiable = equivalence_log_residual(
+                                inferred, cell["true_constants"], cell["k"])
+                        except (KeyError, TypeError, ValueError):
+                            identifiable = None
                     rec = {**cell, "success": True, "error": None,
                            "pred_theta": theta, "pred_omega": omega,
                            "inferred_constants": inferred,
+                           "identifiable_parameter_error": identifiable,
                            "angle_error_mean": angle_error_mean(theta, true_theta),
                            "prompt_tokens": p_tok, "completion_tokens": c_tok,
                            "latency_s": latency}
@@ -276,9 +307,9 @@ async def amain(args):
                         "horizon": h, "disclosure": disc,
                         "movement_id": t["movement_id"],
                         "theta0": theta0, "omega0": omega0,
-                        "constants": t["constants"],
+                        "constants": t["constants"], "history": t.get("history"),
                         "true_constants": t["constants"],
-                        "difficulty": t["rk4_coarse_difficulty"][str(h)],
+                        "difficulty": t.get("rk4_coarse_difficulty", {}).get(str(h)),
                         "_true_theta": tgt["theta"],
                     })
 
@@ -295,7 +326,7 @@ async def amain(args):
         else:
             pending.append((c, path))
     print(f"  {done} already done, {len(pending)} to run.")
-    if not pending:
+    if args.dry_run or not pending:
         return
 
     bu = base_url()
@@ -332,6 +363,7 @@ def main():
     ap.add_argument("--checkpoint-dir", default="results/llm_sysid")
     ap.add_argument("--models", nargs="*")
     ap.add_argument("--limit", type=int, default=0, help="cap cells (smoke test)")
+    ap.add_argument("--dry-run", action="store_true", help="plan cells without API calls")
     asyncio.run(amain(ap.parse_args()))
 
 

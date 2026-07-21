@@ -210,7 +210,8 @@ async def _amain(args):
     with open(args.config, "r", encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
 
-    trajectories = load_all_trajectories(cfg["paths"]["dataset_dir"])
+    dataset_dir = args.dataset_dir or cfg["paths"]["dataset_dir"]
+    trajectories = load_all_trajectories(dataset_dir)
     mv_by_k = trajectories_by_k(trajectories)
 
     only = set(args.models) if args.models else None
@@ -222,7 +223,7 @@ async def _amain(args):
     systems = cfg["dataset"]["systems"]
     regimes = list(cfg["regimes"].keys())
     modalities = cfg["modalities"]
-    horizons = cfg["horizons_seconds"]
+    horizons = args.horizons if args.horizons is not None else cfg["horizons_seconds"]
     prompting = cfg["prompting"]
 
     if args.smoke:
@@ -285,6 +286,10 @@ def main():
                     help="tiny run for smoke testing")
     ap.add_argument("--checkpoint-dir", default=None,
                     help="override checkpoints_dir from config (useful for best-of-N sampling)")
+    ap.add_argument("--dataset-dir", default=None,
+                    help="override dataset_dir from config (useful for held-out seed sweeps)")
+    ap.add_argument("--horizons", type=float, nargs="*", default=None,
+                    help="override config horizons_seconds")
     ap.add_argument("--withhold-hidden-constants-for-learned", action="store_true",
                     help="for changed_hidden learned-model cells, pass normal-regime constants as a neutral prior while scoring against true constants")
     args = ap.parse_args()

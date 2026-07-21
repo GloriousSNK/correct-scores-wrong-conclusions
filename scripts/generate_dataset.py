@@ -72,27 +72,72 @@ def main():
     ap.add_argument("--config", default="config.yaml")
     ap.add_argument("--csv", action="store_true")
     ap.add_argument("--smoke", action="store_true")
+    ap.add_argument("--seed", type=int, default=None,
+                    help="override dataset.seed; useful for disjoint held-out sets")
+    ap.add_argument("--output-dir", default=None,
+                    help="override paths.dataset_dir without modifying the config")
+    ap.add_argument("--id-prefix", default="",
+                    help="prefix trajectory IDs to prevent collisions across datasets")
+    ap.add_argument("--systems", type=int, nargs="*", default=None,
+                    help="override dataset.systems")
+    ap.add_argument("--regimes", nargs="*", default=None,
+                    help="restrict generation to named regimes")
+    ap.add_argument("--trajectories-per-cell", type=int, default=None,
+                    help="override dataset.trajectories_per_cell")
+    ap.add_argument("--resume", action="store_true",
+                    help="reuse valid trajectory JSON files while rebuilding the manifest")
     args = ap.parse_args()
 
     with open(args.config, "r", encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
 
-    paths = cfg["paths"]
-    os.makedirs(paths["dataset_dir"], exist_ok=True)
+    dataset_dir = args.output_dir or cfg["paths"]["dataset_dir"]
+    os.makedirs(dataset_dir, exist_ok=True)
 
     ds = cfg["dataset"]
     regimes = cfg["regimes"]
+    systems = args.systems if args.systems is not None else ds["systems"]
+    if args.regimes is not None:
+        unknown = sorted(set(args.regimes) - set(regimes))
+        if unknown:
+            raise ValueError(f"Unknown regimes: {', '.join(unknown)}")
+        regimes = {name: regimes[name] for name in args.regimes}
     ic_cfg = cfg["initial_conditions"]
-    n_per = 1 if args.smoke else int(ds["trajectories_per_cell"])
-    rng = np.random.default_rng(int(ds["seed"]))
+    n_per = 1 if args.smoke else int(args.trajectories_per_cell or ds["trajectories_per_cell"])
+    if n_per < 1:
+        raise ValueError("--trajectories-per-cell must be positive")
+    seed = int(ds["seed"] if args.seed is None else args.seed)
+    rng = np.random.default_rng(seed)
     pre_context_seconds = float(ds.get("pre_context_seconds", 5.0))
 
     manifest = []
-    total = len(ds["systems"]) * len(regimes) * n_per
+    total = len(systems) * len(regimes) * n_per
     pbar = tqdm(total=total, desc="generating")
-    for k in ds["systems"]:
+    for k in systems:
         for regime_name, regime_cfg in regimes.items():
             for idx in range(n_per):
+                base_id = f"k{k}_{regime_name}_{idx:04d}"
+                movement_id = f"{args.id_prefix}{base_id}" if args.id_prefix else base_id
+                json_path = os.path.join(dataset_dir, f"{movement_id}.json")
+                if args.resume and os.path.exists(json_path):
+                    # Preserve the exact RNG stream used by _generate_one.
+                    rng.uniform(ic_cfg["theta_low"], ic_cfg["theta_high"], size=k)
+                    rng.uniform(ic_cfg["omega_low"], ic_cfg["omega_high"], size=k)
+                    try:
+                        with open(json_path, "r", encoding="utf-8") as handle:
+                            existing = json.load(handle)
+                        if (existing.get("movement_id") != movement_id
+                                or int(existing.get("number_of_pendulums", -1)) != k
+                                or existing.get("regime") != regime_name):
+                            raise ValueError("trajectory metadata mismatch")
+                    except Exception as error:
+                        raise RuntimeError(f"Invalid resumable trajectory {json_path}: {error}") from error
+                    manifest.append({
+                        "movement_id": movement_id, "k": k,
+                        "regime": regime_name, "file": json_path, "seed": seed,
+                    })
+                    pbar.update(1)
+                    continue
                 traj = _generate_one(
                     k=k, regime_name=regime_name, regime_cfg=regime_cfg,
                     idx=idx, rng=rng, ic_cfg=ic_cfg,
@@ -100,25 +145,25 @@ def main():
                     total_seconds=float(ds["total_seconds"]),
                     pre_context_seconds=pre_context_seconds,
                 )
-                json_path = os.path.join(paths["dataset_dir"],
-                                         f"{traj.movement_id}.json")
+                if args.id_prefix:
+                    traj.movement_id = f"{args.id_prefix}{traj.movement_id}"
+                json_path = os.path.join(dataset_dir, f"{traj.movement_id}.json")
                 write_trajectory_json(traj, json_path)
                 if args.csv:
-                    csv_path = os.path.join(paths["dataset_dir"],
-                                            f"{traj.movement_id}.csv")
+                    csv_path = os.path.join(dataset_dir, f"{traj.movement_id}.csv")
                     write_trajectory_csv(traj, csv_path)
                 manifest.append({
                     "movement_id": traj.movement_id, "k": k,
-                    "regime": regime_name, "file": json_path,
+                    "regime": regime_name, "file": json_path, "seed": seed,
                 })
                 pbar.update(1)
     pbar.close()
 
-    with open(os.path.join(paths["dataset_dir"], "manifest.json"),
+    with open(os.path.join(dataset_dir, "manifest.json"),
               "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2)
 
-    print(f"Wrote {len(manifest)} trajectories to {paths['dataset_dir']}/")
+    print(f"Wrote {len(manifest)} trajectories (seed {seed}) to {dataset_dir}/")
 
 
 if __name__ == "__main__":

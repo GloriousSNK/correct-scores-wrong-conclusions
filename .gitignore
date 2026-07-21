@@ -35,3 +35,7 @@ _incoming_mac/
 *.synctex.gz
 *.fdb_latexmk
 *.fls
+
+# --- Generated LaTeX tables and logs (regenerate from scripts/build) ---
+*.log
+paper/manuscripts/generated/
