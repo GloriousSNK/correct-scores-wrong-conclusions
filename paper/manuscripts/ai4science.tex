@@ -301,7 +301,7 @@ penalty.
 
 \paragraph{Lorenz replication.} A secondary Lorenz--63 test compares numerical references,
 persistence, SINDy, NVAR, a Neural~ODE trained on 20 seed-42 trajectories, and zero-shot
-Chronos-2 on two five-trajectory held-out seeds. We report training-normalized coordinate MAE at
+Chronos-2 on five five-trajectory held-out seeds. We report training-normalized coordinate MAE at
 $\{0.1,0.5,1.0\}$~s; Appendix~C gives the full configuration. HNN and LNN are omitted because
 Lorenz--63 is dissipative and non-Hamiltonian.
 
@@ -396,28 +396,6 @@ Earth-standard defaults, but we treat those outputs as descriptive and make no
 system-identification claim from them. The released numerical check verifies both invariances
 to below $10^{-13}$ over one-second trajectories.
 
-\begin{table}[tbp]
-\centering\small
-\caption{Matched disclosure gap (rad), paired on identical
-trajectories. $\Delta_{\mathrm{disc}}=\mathrm{err}(\text{hidden})-
-\mathrm{err}(\text{disclosed})$; positive values indicate higher error without the
-constants. Reliability-adjusted; paired Wilcoxon, Holm-corrected.}\label{tab:sysid}
-\begin{tabular}{lccc}
-\toprule
-Model & disclosed & hidden & $\Delta_{\mathrm{disc}}$ \\
-\midrule
-kimi-k2.6 & 0.746 & 0.957 & $+0.211$ \\
-grok-4-1-fast-reasoning & 0.987 & 1.025 & $+0.038$ \\
-deepseek-v4-pro & 1.425 & 1.382 & $-0.042$ \\
-\midrule
-\multicolumn{3}{l}{pooled (paired, $n{=}900$)} & $+0.069^{*}$ \\
-\multicolumn{3}{l}{\quad $k{=}1$} & $+0.297^{***}$ \\
-\multicolumn{3}{l}{\quad $k{=}3$} & $-0.055^{*}$ \\
-\bottomrule
-\multicolumn{4}{l}{\footnotesize $^{*}p_{\mathrm{Holm}}{<}0.05$,\ \ $^{***}p_{\mathrm{Holm}}{<}10^{-3}$.}
-\end{tabular}
-\end{table}
-
 \subsection{Replication across seeds and training budgets}
 \label{sec:replication}
 We reran the local pendulum subset on an independent held-out seed with five trajectories per
@@ -451,28 +429,40 @@ change.
 
 The identifiability verdict flips. On the pendulum the physical constants are not recoverable
 from an angle trajectory (\S\ref{sec:sysid}); on Lorenz, sparse identification (SINDy, a
-degree-two library with STLSQ) recovers the vector field to normalized MAE below $10^{-5}$ at
-every horizon. The difference is the setting, not the audit: Lorenz--63 lies inside SINDy's
+degree-two library with STLSQ) recovers the vector field to normalized MAE below
+$2\times10^{-5}$ at every horizon and in every seed. The difference is the setting, not the audit: Lorenz--63 lies inside SINDy's
 hypothesis class and is observed in full state, so its parameters are identifiable, whereas the
 pendulum's absolute constants are not identifiable from angles under any method. Identifiability
 is a property of the observation model and the hypothesis class, which is what the check is
 meant to expose.
 
-The model ordering also changes. Trained on one seed and evaluated on two held-out seeds, a Lorenz
-Neural~ODE reaches normalized MAE $0.005$, $0.055$, and $0.258$ at horizons $0.1$, $0.5$, and
-$1.0$~s, below both Chronos-2 modes ($0.08$--$0.11$, $0.55$--$0.57$, $0.65$--$0.66$); NVAR is
-close at $0.1$~s ($0.012$) but drifts to $0.437$ by $1.0$~s, a persistence baseline trails
-($0.79$ at $1$~s), and divergent rollouts are scored at $\pi/2$ as on the pendulum
-(Table~\ref{tab:replication}). This is the reverse of the pendulum, where the trained models
-lost to trivial baselines: here a system-trained model beats the zero-shot foundation model. As
-on the pendulum the families see different inputs (SINDy the library, the Neural~ODE
-target-system training, Chronos a history window), so this is not an architecture race; the
-cross-system result rejects the pendulum ranking as a general ordering of model families.
+The model ordering also changes. Trained on one seed and evaluated on five held-out seeds
+(25 trajectories), a Lorenz Neural~ODE reaches normalized MAE $0.014\pm0.008$, $0.079\pm0.030$,
+and $0.277\pm0.063$ at horizons $0.1$, $0.5$, and $1.0$~s (mean $\pm$ standard error over
+seeds), below both Chronos-2 modes at every horizon (multivariate $0.101\pm0.018$,
+$0.691\pm0.129$, $0.771\pm0.097$; univariate $0.126\pm0.027$, $0.700\pm0.102$,
+$0.732\pm0.085$). NVAR is close at $0.1$~s ($0.012$) but drifts to $0.429$ by $1.0$~s, a
+persistence baseline trails ($0.900$ at $1$~s), and divergent rollouts are scored at $\pi/2$ as
+on the pendulum (Table~\ref{tab:replication}). This is the reverse of the pendulum, where the
+trained models lost to trivial baselines: here a system-trained model beats the zero-shot
+foundation model. As on the pendulum the families see different inputs (SINDy the library, the
+Neural~ODE target-system training, Chronos a history window), so this is not an architecture
+race; the cross-system result rejects the pendulum ranking as a general ordering of model
+families.
+
+The reversal does not rest on a favorable seed. The Neural~ODE has lower error than both
+Chronos modes in all $15$ seed-by-horizon cells, the separation is roughly four standard errors
+at each horizon, and SINDy stays below $1.7\times10^{-5}$ in every cell. The identifiability
+half of the contrast is not a sampling claim at all: the pendulum symmetries are exact and
+verified to below $10^{-13}$, and Lorenz--63 lies in SINDy's library by construction.
 
 The Lorenz test includes the local methods for which the comparison is well defined. It excludes
 the API LLM grid and the Hamiltonian and Lagrangian networks; a Hamiltonian model does not match
-the dissipative Lorenz flow. This targeted test is sufficient to falsify transfer of the
-pendulum ordering and identifiability result.
+the dissipative Lorenz flow. Those omissions limit what the test can establish, but not what it
+can refute: the pendulum result is only interesting if it generalizes, and one system on which
+the ordering and the identifiability verdict both invert is enough to withdraw that
+generalization. We claim no more than that, and in particular the Lorenz ordering is not offered
+as the correct one.
 
 \subsection{Diagnostics}
 \label{sec:behavior}
@@ -557,9 +547,9 @@ pricing. The local methods incur compute cost without a per-query charge.
 \label{sec:limitations}
 The full LLM grid uses one held-out seed; the local replication adds a second, unequal sample.
 The budget study uses three training initializations and two held-out seeds. Inputs differ by
-method as listed in Table~\ref{tab:inputs}. The Lorenz test uses five trajectories per held-out
-seed and excludes API LLMs, HNN, and LNN; SINDy's result depends on a library containing the
-true polynomial degree. Predictions are endpoints, conservation tests cover only the undamped
+method as listed in Table~\ref{tab:inputs}. The Lorenz test uses five trajectories in each of
+five held-out seeds and excludes API LLMs, HNN, and LNN; SINDy's result depends on a library
+containing the true polynomial degree. Predictions are endpoints, conservation tests cover only the undamped
 regime, and foundation-model training corpora are not observable.
 
 \section{Conclusion}
@@ -662,8 +652,8 @@ reproduction. Invalid cells score $\pi/2$.
 
 \section{Seed and system replication}
 Lorenz uses $(\sigma,\rho,\beta)=(10,28,8/3)$, RK4 ground truth at $\Delta t=0.01$~s,
-a 5~s context, training seed 42, and held-out seeds 20260620 and 20260621. Each held-out seed
-contains five trajectories. The Neural~ODE is a two-hidden-layer, width-128 tanh network
+a 5~s context, training seed 42, and held-out seeds 20260620--20260624. Each held-out seed
+contains five trajectories, giving 25 held-out trajectories in total. The Neural~ODE is a two-hidden-layer, width-128 tanh network
 trained for 300 epochs by analytic derivative matching. SINDy uses a degree-two polynomial
 library and STLSQ; NVAR uses two delays, degree-two features, and ridge regression. Chronos-2
 uses \texttt{amazon/chronos-2} in univariate and multivariate modes.
@@ -673,8 +663,9 @@ uses \texttt{amazon/chronos-2} in univariate and multivariate modes.
 seed and equal-seed mean; horizons $\{1,10\}$~s. The original seed has 20 trajectories per
 $(k,\mathrm{regime})$ cell and the new seed has five. Equal-seed answer rates are $97\%$
 for LNN, $61\%$ for SINDy, and $46\%$ for NVAR; all other rows answer $100\%$. Bottom:
-Lorenz--63 normalized MAE,
-averaged within each of two held-out seeds and then across seeds. Lower is better.}
+Lorenz--63 normalized MAE, averaged within each of five held-out seeds (five trajectories each)
+and then across seeds, with the standard error over seeds. SINDy is below $2\times10^{-5}$ in
+every cell. Lower is better.}
 \label{tab:replication}
 \begin{tabular}{lccc}
 \toprule
@@ -695,13 +686,13 @@ lnn & 1.356 & 1.376 & 1.366 \\
 Lorenz model & $0.1$~s & $0.5$~s & $1.0$~s \\
 \midrule
 rk4 (reference) & 0.000 & 0.000 & 0.000 \\
-sindy & 0.000 & 0.000 & 0.000 \\
-neural-ode & 0.005 & 0.055 & 0.258 \\
-nvar & 0.012 & 0.281 & 0.437 \\
-euler & 0.029 & 0.244 & 0.864 \\
-persistence & 0.496 & 1.150 & 0.790 \\
-chronos2-uni & 0.106 & 0.548 & 0.647 \\
-chronos2-multi & 0.082 & 0.568 & 0.657 \\
+sindy & ${<}10^{-5}$ & ${<}10^{-5}$ & ${<}2{\times}10^{-5}$ \\
+neural-ode & 0.014 (0.008) & 0.079 (0.030) & 0.277 (0.063) \\
+nvar & 0.012 (0.001) & 0.262 (0.050) & 0.429 (0.084) \\
+chronos2-uni & 0.126 (0.027) & 0.700 (0.102) & 0.732 (0.085) \\
+chronos2-multi & 0.101 (0.018) & 0.691 (0.129) & 0.771 (0.097) \\
+euler & 0.028 (0.005) & 0.216 (0.023) & 0.885 (0.120) \\
+persistence & 0.524 (0.054) & 1.028 (0.123) & 0.900 (0.057) \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -774,9 +765,31 @@ lnn & 1.511 & 1.408 & 1.127 \\
 \section{Additional result tables}
 \label{app:extra}
 Full per-model values for the horizon breakdown (\S\ref{sec:behavior}) and the predictability
-horizon (\S\ref{sec:sysid}), together with the regime definitions and the training-budget,
-training-objective, and physical-fidelity studies. The corresponding summary statistics appear
+horizon (\S\ref{sec:sysid}), together with the regime definitions, the matched disclosure gap,
+and the training-budget, training-objective, and physical-fidelity studies. The corresponding summary statistics appear
 in the main text.
+
+\begin{table}[tbp]
+\centering\small
+\caption{Matched disclosure gap (rad), paired on identical
+trajectories. $\Delta_{\mathrm{disc}}=\mathrm{err}(\text{hidden})-
+\mathrm{err}(\text{disclosed})$; positive values indicate higher error without the
+constants. Reliability-adjusted; paired Wilcoxon, Holm-corrected.}\label{tab:sysid}
+\begin{tabular}{lccc}
+\toprule
+Model & disclosed & hidden & $\Delta_{\mathrm{disc}}$ \\
+\midrule
+kimi-k2.6 & 0.746 & 0.957 & $+0.211$ \\
+grok-4-1-fast-reasoning & 0.987 & 1.025 & $+0.038$ \\
+deepseek-v4-pro & 1.425 & 1.382 & $-0.042$ \\
+\midrule
+\multicolumn{3}{l}{pooled (paired, $n{=}900$)} & $+0.069^{*}$ \\
+\multicolumn{3}{l}{\quad $k{=}1$} & $+0.297^{***}$ \\
+\multicolumn{3}{l}{\quad $k{=}3$} & $-0.055^{*}$ \\
+\bottomrule
+\multicolumn{4}{l}{\footnotesize $^{*}p_{\mathrm{Holm}}{<}0.05$,\ \ $^{***}p_{\mathrm{Holm}}{<}10^{-3}$.}
+\end{tabular}
+\end{table}
 
 \begin{figure}[tbp]
 \centering
