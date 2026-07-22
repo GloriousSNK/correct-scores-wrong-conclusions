@@ -66,7 +66,9 @@ finds a $+0.069$\,rad penalty. Two exact scale symmetries prove that the absolut
 not identifiable from angle trajectories. Increasing the Neural~ODE training set improves
 error from $1.090$ to $0.861$\,rad but does not reach known-equation integration. The pendulum
 ordering also fails to transfer to Lorenz--63, where SINDy recovers the polynomial dynamics to
-numerical precision. These results show that a correct leaderboard can still support incorrect
+numerical precision. On video-tracked hardware the roles invert: the RK4 model with published
+constants is itself imperfect, and its lead over simple baselines is gone within a second.
+These results show that a correct leaderboard can still support incorrect
 scientific conclusions. We release the prompts, outputs, checkpoints, seeds, and compute
 records needed to repeat the audit.
 \end{abstract}
@@ -78,7 +80,8 @@ system. We study these failure modes directly. Given state $\mathbf{s}_t$, the t
 predict $\mathbf{s}_{t+T}$. The $k$-link pendulum is integrable at $k{=}1$ and chaotic for
 $k{\ge}2$, has high-precision ground truth, and permits controlled changes to physical
 metadata. Lorenz--63 provides a second system with a different observation model and
-hypothesis class.
+hypothesis class; a hardware check (\S\ref{sec:realdata}) scores the reference model itself
+as the imperfect one.
 
 Our contribution is a claim audit for dynamical-system forecasts. It tests held-out
 generalization, counts every failed forecast, records the information available to each
@@ -254,11 +257,10 @@ confound disclosure with trajectory difficulty, we also run a matched experiment
 \section{Methods}
 \label{sec:methods}
 \paragraph{LLMs.} We evaluate \texttt{kimi-k2.6}, \texttt{grok-4-1-fast-reasoning}, and
-\texttt{deepseek-v4-pro} through an OpenAI-compatible API (Azure AI Foundry deployments;
-evaluated June~2026), with a structured prompt (system description, disclosed constants where
-applicable, initial state) and a JSON answer schema (Appendix~A). Each cell uses one
-temperature-$0$ call with a uniform token and timeout budget; no best-of-$N$ aggregation is
-used. The LLM evaluation (Parts~A and~B, $3{,}960$ cells) records prompt and completion
+\texttt{deepseek-v4-pro} through an OpenAI-compatible API (hosted deployments, June~2026),
+with a structured prompt (system description, disclosed constants where applicable, initial
+state) and a JSON answer schema (Appendix~A). Each cell uses one temperature-$0$ call with a
+uniform token and timeout budget; no best-of-$N$ aggregation is used. The LLM evaluation (Parts~A and~B, $3{,}960$ cells) records prompt and completion
 token counts and has an estimated nominal API cost of \$110.38 under the pricing assumptions
 in the released analysis script.
 
@@ -337,7 +339,7 @@ and nonlinear vector autoregression (NVAR, $1.248$) is among the weakest data-dr
 near constant velocity.
 
 \begin{table}[tbp]
-\centering\small
+\centering\small\renewcommand{\arraystretch}{0.94}
 \caption{Out-of-sample cross-family comparison on the shared held-out set ($360$ cells, horizons
 $\{1,10\}$\,s). Reliability-adjusted mean angle error (rad): unanswered or missing cells
 scored at $\pi/2$; $95\%$ bootstrap CI. RK4 generates the data and is included
@@ -463,6 +465,25 @@ the ordering and the identifiability verdict both invert is enough to withdraw t
 generalization. We claim no more than that, and in particular the Lorenz ordering is not offered
 as the correct one.
 
+\subsection{Real data: the reference model becomes the imperfect one}
+\label{sec:realdata}
+On real hardware the RK4 integrator is no longer ground truth but the imperfect model. We use
+an open video-tracked double pendulum
+\citep{myers2020pendulum} (three free-drop trials, $500$\,Hz, published point-mass constants,
+${\sim}0.4^{\circ}$ median tracking noise); Trial~1 only calibrates (nearest-neighbor
+database, SINDy fit, one-parameter damping fit), and trials 2--3 supply $120$ held-out states
+scored as before at $\{0.1,0.5,1.0\}$\,s (Table~\ref{tab:realdata},
+Appendix~\ref{app:realdata}).
+
+RK4 with the published constants leads at $0.1$\,s ($0.084$\,rad, about $14\times$ the
+tracking noise) but reaches $1.25$\,rad by $1.0$\,s, indistinguishable from persistence
+($1.23$); unmodeled friction and the point-mass simplification consume its advantage within a
+second. The fitted damping trades horizons rather than dominating ($0.89$ vs $0.82$ at
+$0.5$\,s, $1.15$ vs $1.25$ at $1.0$\,s). SINDy, exact on Lorenz, sits at baseline level here
+($1.54$); the hardware's dynamics are not in its library. Chronos-2 answers $89\%$ of cells,
+since states shortly after the drop lack its $5$\,s history; failure accounting charges them
+at $\pi/2$. Every check transfers, and the ordering differs from both synthetic systems.
+
 \subsection{Diagnostics}
 \label{sec:behavior}
 \paragraph{Behavior by horizon.}
@@ -547,7 +568,8 @@ pricing. The local methods incur compute cost without a per-query charge.
 The full LLM grid uses one held-out seed; the local replication adds a second with fewer
 trajectories per cell. The budget study uses three training initializations and two held-out
 seeds. Inputs differ by method as listed in Table~\ref{tab:inputs}. The Lorenz test uses five
-trajectories in each of five held-out seeds and excludes API LLMs, HNN, and LNN; SINDy's
+trajectories in each of five held-out seeds and excludes API LLMs, HNN, and LNN; the hardware
+check uses three trials of one apparatus with filtered velocities. SINDy's
 result depends on a library containing the true polynomial degree. Predictions are single
 endpoint states, conservation tests cover only the undamped regime, and we cannot rule out
 pendulum-like trajectories in the foundation models' training corpora.
@@ -555,12 +577,11 @@ pendulum-like trajectories in the foundation models' training corpora.
 \section{Conclusion}
 Correct scores can support wrong scientific conclusions. Here, generalization, failure
 accounting, matched disclosure, identifiability, and cross-system transfer each change a
-claim supported by the raw leaderboard. Scientific forecasting benchmarks should report those
-checks, their training budgets, and each method's information access as part of the result.
-We chose systems whose ground truth is cheap so that each check could be shown to change a
-conclusion, but the checks are worth most where verification is expensive; carrying them to
-systems whose verification budget is the binding constraint is what this setup was built to
-support. All prompts, outputs, checkpoints, seeds, and compute records accompany the paper.
+claim supported by the raw leaderboard, and forecasting benchmarks should report those
+checks, training budgets, and information access as part of the result. The synthetic systems
+make each check's effect visible against exact ground truth; the hardware check runs the same
+audit where the reference model itself is imperfect, the setting this work was built to
+reach.
 
 % Camera-ready only (deanonymizing; keep commented for double-blind review):
 %
@@ -965,6 +986,46 @@ hnn-rollout & 0.01 & 0.01 & 0.01 & 1.0 \\
 neural-ode & 0.01 & 0.01 & 0.01 & 1.0 \\
 hnn & 0.01 & 0.01 & 0.01 & 0.01 \\
 lnn & --- & --- & 0.01 & 0.01 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Real-data check details}
+\label{app:realdata}
+The hardware dataset \citep{myers2020pendulum} is released under GPL-3 with video tracking of
+both link angles at $500$\,Hz and per-frame uncertainty estimates (median $0.20^{\circ}$ upper
+link, $0.43^{\circ}$ lower). We use the published simplified point-mass parameters
+($L=[0.172,0.143]$\,m, $m=[0.311,0.111]$\,kg, $g=9.81$). Angular velocities come from a
+Savitzky--Golay filter (window $42$\,ms, cubic, analytic derivative). The recordings begin
+with the pendulum positioned by hand, so the free drop is detected as the first time either
+link exceeds $4$\,rad/s; evaluation states are drawn evenly from $0.2$ to $24$\,s after the
+drop, $60$ per trial. The tracker zeroes its angle at the first frame, leaving a
+gravity-referenced offset per link that we select from $\{0,\pi\}$ by which choice lets the
+physics model track at a $20$\,ms horizon; the selected offsets are zero for every trial, with
+$20$\,ms error $0.005$--$0.007$\,rad against a $0.006$\,rad tracking floor. The damping grid
+$\{0,5{\times}10^{-4},\dots,2{\times}10^{-2}\}$ selects $10^{-3}$ on Trial~1 at the $0.5$\,s
+horizon. SINDy uses a degree-two polynomial plus first-order Fourier library on Trial~1 with
+Savitzky--Golay derivatives; Chronos-2 receives a $5$\,s context resampled to $50$\,Hz and
+forecasts at most $50$ steps. Failures (non-finite rollouts, missing context) score $\pi/2$.
+
+\begin{table}[tbp]
+\centering\small
+\caption{Real-data check: mean wrapped angle error (rad) over both links on trials 2--3
+($120$ held-out states), failures at $\pi/2$. The physics rows use the published constants;
+``damped'' adds the Trial-1-fitted viscous coefficient. Tracking noise floor
+${\approx}0.006$\,rad.}
+\label{tab:realdata}
+\begin{tabular}{lcccc}
+\toprule
+Model & $0.1$\,s & $0.5$\,s & $1.0$\,s & Answered \\
+\midrule
+physics-rk4 & 0.084 & 0.820 & 1.248 & 100\% \\
+physics-rk4-damped & 0.086 & 0.892 & 1.145 & 100\% \\
+nearest-neighbor (cross-trial) & 0.371 & 0.849 & 1.117 & 100\% \\
+chronos2 & 0.611 & 1.160 & 1.223 & 89\% \\
+constant-velocity & 0.345 & 1.402 & 1.576 & 100\% \\
+sindy-real & 0.490 & 1.501 & 1.535 & 99\% \\
+persistence & 0.934 & 1.654 & 1.230 & 100\% \\
 \bottomrule
 \end{tabular}
 \end{table}
