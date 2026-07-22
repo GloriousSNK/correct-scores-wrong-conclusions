@@ -80,21 +80,20 @@ system. We study these failure modes directly. Given state $\mathbf{s}_t$, the t
 predict $\mathbf{s}_{t+T}$. The $k$-link pendulum is integrable at $k{=}1$ and chaotic for
 $k{\ge}2$, has high-precision ground truth, and permits controlled changes to physical
 metadata. Lorenz--63 provides a second system with a different observation model and
-hypothesis class; a hardware check (\S\ref{sec:realdata}) scores the reference model itself
-as the imperfect one.
+hypothesis class; a hardware replication of the audit (\S\ref{sec:realdata}) scores the
+reference model itself as the imperfect one.
 
 Our contribution is a claim audit for dynamical-system forecasts. It tests held-out
 generalization, counts every failed forecast, records the information available to each
 method, changes disclosure on identical trajectories, checks identifiability before scoring
-parameter recovery, varies the training budget, and tests whether conclusions transfer to a
-second system. Table~\ref{tab:audit-summary} states the conclusion before and after each test.
+parameter recovery, and tests whether conclusions transfer to a second system. Table~\ref{tab:audit-summary} states the conclusion before and after each test.
 The central result is empirical and direct: all five tests alter or reject a conclusion
 supported by the unaudited comparison. These are conclusions the field actually draws:
 zero-shot forecasters are routinely scored without failure accounting or matched controls
 \citep{gruver2023llmtime,zhang2025zeroshotchaos}, and our setting mirrors that practice.
 
 \begin{table}[tbp]
-\centering\small
+\centering\footnotesize\renewcommand{\arraystretch}{0.94}
 \caption{Conclusions before and after the claim audit. Each row changes one part of the
 evaluation while preserving the relevant model outputs or comparison set.}
 \label{tab:audit-summary}
@@ -102,15 +101,15 @@ evaluation while preserving the relevant model outputs or comparison set.}
 \toprule
 Test & Unaudited conclusion & Audited conclusion \\
 \midrule
-Generalization &
-Learned dynamics forecast accurately. &
-Error rises about fourfold; simple baselines perform better. \\
 Failures &
 Answered forecasts represent model performance. &
 Incomplete coverage lowers reliability-adjusted performance. \\
+Generalization &
+Learned dynamics forecast accurately. &
+At this training budget, error rises about fourfold and simple baselines perform better. \\
 Disclosure &
 Withholding constants improves forecasts. &
-Withholding constants increases pooled error by $0.069$\,rad. \\
+Matched, the effect is small and model-dependent ($+0.069$\,rad pooled). \\
 Identifiability &
 Absolute constants can be recovered from angles. &
 Two exact symmetries make absolute recovery impossible. \\
@@ -296,7 +295,7 @@ small-angle linearized model, and a nearest-neighbor analog forecast from the ma
 (k, regime) training trajectory. The nearest-neighbor baseline uses the same data as the
 learned models.
 
-On the balanced two-seed subset we also fit SINDy with a degree-two polynomial library and
+On both held-out seeds (equal-weighted; \Sef{sec:replication}) we also fit SINDy with a degree-two polynomial library and
 STLSQ, and nonlinear vector autoregression (NVAR) with two delays, degree-two features, and
 ridge regression. Divergent rollouts are retained as failures and receive the same $\pi/2$
 penalty.
@@ -308,7 +307,7 @@ $\{0.1,0.5,1.0\}$~s; Appendix~C gives the full configuration. HNN and LNN are om
 Lorenz--63 is dissipative and non-Hamiltonian.
 
 \section{Results}
-\subsection{Counting failed responses}
+\subsection{Failure accounting and held-out generalization}
 \label{sec:reliability}
 The shared held-out grid contains $360$ cells: 180 trajectories at horizons $\{1,10\}$\,s.
 Every model is evaluated on that grid. The Answered column in Table~\ref{tab:overall} gives the
@@ -321,7 +320,7 @@ Table~\ref{tab:overall} ranks the models on the pendulum under the access condit
 system; Section~\ref{sec:lorenz} tests whether it transfers. The known-equation integrators sit
 at the top as references (RK4 $0.059$ at a finer step, symplectic $0.205$, Euler $0.405$),
 and every learned dynamics model lands closer to the $\pi/2$ random baseline than to the
-integrators. The lowest-error black-box entry is the frontier LLM \texttt{kimi}
+RK4 and symplectic references. The lowest-error black-box entry is the frontier LLM \texttt{kimi}
 ($0.538$\,rad, $99\%$ answered), and its marginal interval excludes the nearest baseline's.
 That is a statement about one recorded June~2026 deployment under these evaluation
 conditions, not about model families; the Lorenz test rejects the family reading.
@@ -332,7 +331,7 @@ but HNN-rollout ($0.972$), though those two intervals overlap. The stable learne
 trajectories and $0.97$--$1.14$\,rad on the held-out set, so in-sample evaluation understates
 their error by about a factor of four.
 
-Two further data-driven methods appear only on the balanced two-seed subset, so we report them
+Two further data-driven methods appear only on the two-seed replication subset, so we report them
 in Table~\ref{tab:replication} rather than in the main comparison: sparse identification
 (SINDy, $0.883$\,rad on that subset) falls between the Chronos family and the learned models,
 and nonlinear vector autoregression (NVAR, $1.248$) is among the weakest data-driven methods,
@@ -373,28 +372,29 @@ simple baselines are marked $\ddagger$.}\label{tab:overall}
 \end{table}
 
 \paragraph{Effect of missing predictions.} \texttt{grok} answers $82\%$ of the grid and
-\texttt{lnn} $94\%$. Their ranks fall when missing cells receive $\pi/2$. An answered-cells-only
-mean omits the cases on which these models failed and gives both a lower reported error.
+\texttt{lnn} $94\%$: their ranks fall when missing cells receive $\pi/2$, and a mean over
+answered cells alone would flatter both.
 
-\subsection{Matched disclosure test}
+\subsection{Matched disclosure and identifiability}
 \label{sec:sysid}
 On the shared held-out set the hidden regime has lower error than the disclosed regime
 ($-0.390$\,rad, $p_{\mathrm{Holm}}{<}10^{-3}$, unpaired) and than the normal regime
-($-0.524$). Read directly, this looks favorable to withholding constants, but the regimes use
-different trajectories, and the hidden ones are slower and less divergent, so the comparison
-cannot speak to parameter recovery. When we instead toggle disclosure on identical
-trajectories (Table~\ref{tab:sysid}), the pooled effect reverses: hiding the constants
-increases error ($\Delta_{\mathrm{disc}}{=}{+}0.069$\,rad, $p_{\mathrm{Holm}}{=}0.034$), with
-disclosure helping strongly at $k{=}1$ and only a small reverse effect at $k{=}3$. The
-unadjusted hidden-regime advantage is thus a difficulty confound.
+($-0.524$). This looks favorable to withholding constants, but the regimes use different
+trajectories, and the hidden ones are slower and less divergent, so the comparison cannot
+speak to parameter recovery. When we instead toggle disclosure on identical trajectories for
+the three LLMs ($900$ paired cells on a separate matched grid; Table~\ref{tab:sysid}), the
+pooled effect reverses: hiding the constants increases error
+($\Delta_{\mathrm{disc}}{=}{+}0.069$\,rad, $p_{\mathrm{Holm}}{=}0.034$), helping at $k{=}1$,
+reversing slightly at $k{=}3$. The unadjusted hidden-regime advantage is thus a difficulty
+confound.
 
 The disclosure test also has a structural limit. The angular equations are unchanged by
 $(m,d)\mapsto(am,ad)$ and by $(L,g,d)\mapsto(bL,bg,b^2d)$, so for $k{=}1$ only $g/L$ and
 $d/(mL^2)$ are identifiable from an angle trajectory; absolute $g$, $L$, $m$, and $d$ cannot
 be scored as independently recoverable. Asked to name the constants from a single state, the
-LLMs mostly returned Earth-standard defaults, which is evidence of a prior, not of recovery.
-The released numerical check verifies both invariances to below $10^{-13}$ over one-second
-trajectories.
+LLMs mostly returned Earth-standard defaults, which is evidence of a prior, not of recovery
+(transcripts in the released records). A released check verifies both invariances to below
+$10^{-13}$.
 
 \subsection{Replication across seeds and training budgets}
 \label{sec:replication}
@@ -430,7 +430,7 @@ The identifiability verdict flips. On the pendulum the physical constants are no
 from an angle trajectory (\S\ref{sec:sysid}); on Lorenz, SINDy recovers the governing
 equations themselves, not merely their forecasts. The refit selects exactly the true sparsity
 pattern and returns $(\hat\sigma,\hat\rho,\hat\beta)=(10,28,8/3)$ to coefficient error
-$2\times10^{-13}$ (Appendix~C); forecast error stays below $2\times10^{-5}$ in every seed.
+$2.2\times10^{-13}$ (Appendix~C); forecast error stays below $2\times10^{-5}$ in every seed.
 The difference is the setting, not the audit: Lorenz--63 lies inside SINDy's hypothesis class
 and is observed in full state, so its parameters are identifiable, whereas the pendulum's
 absolute constants are not identifiable from angles under any method. Identifiability is a
@@ -470,7 +470,7 @@ as the correct one.
 On real hardware the RK4 integrator is no longer ground truth but the imperfect model. We use
 an open video-tracked double pendulum
 \citep{myers2020pendulum} (three free-drop trials, $500$\,Hz, published point-mass constants,
-${\sim}0.4^{\circ}$ median tracking noise); Trial~1 only calibrates (nearest-neighbor
+${\sim}0.35^{\circ}$ median tracking noise); Trial~1 only calibrates (nearest-neighbor
 database, SINDy fit, one-parameter damping fit), and trials 2--3 supply $120$ held-out states
 scored as before at $\{0.1,0.5,1.0\}$\,s (Table~\ref{tab:realdata},
 Appendix~\ref{app:realdata}).
@@ -481,8 +481,9 @@ tracking noise) but reaches $1.25$\,rad by $1.0$\,s, indistinguishable from pers
 second. The fitted damping trades horizons rather than dominating ($0.89$ vs $0.82$ at
 $0.5$\,s, $1.15$ vs $1.25$ at $1.0$\,s). SINDy, exact on Lorenz, sits at baseline level here
 ($1.54$); the hardware's dynamics are not in its library. Chronos-2 answers $89\%$ of cells,
-since states shortly after the drop lack its $5$\,s history; failure accounting charges them
-at $\pi/2$. Every check transfers, and the ordering differs from both synthetic systems.
+since states shortly after the drop lack the $5$\,s context used here
+(Appendix~\ref{app:realdata}); failure accounting charges them at $\pi/2$. Every check
+transfers, and the ordering differs from both synthetic systems.
 
 \subsection{Diagnostics}
 \label{sec:behavior}
@@ -504,9 +505,10 @@ separable.
 \paragraph{Breakdown by $k$ and regime.}
 \label{sec:breakdown}
 Tables~\ref{tab:perk} and~\ref{tab:perregime} (Appendix~D) report out-of-sample error by
-number of links and by regime. Error increases monotonically with $k$ for every family (for
-\texttt{kimi}, $0.11\to0.55\to0.95$; the integrators are near-exact at $k{=}1$ and degrade as
-chaos sets in), and the cross-family ordering holds within each $k$. The
+number of links and by regime. Error increases with $k$ for every model except the mixed-$k$
+Neural~ODE, which dips at $k{=}3$ (for \texttt{kimi}, $0.11\to0.55\to0.95$; the integrators
+are near-exact at $k{=}1$ and degrade as chaos sets in), and the cross-family ordering holds
+within each $k$. The
 \texttt{changed\_hidden} regime has the lowest error for almost every model (for
 \texttt{kimi}, $0.46$ hidden vs.\ $0.64$ normal). For the learned models, withholding the
 hidden constants reduces but does not remove the same difficulty effect: hidden-regime errors
@@ -559,9 +561,8 @@ the vector field lies in its library, while a system-trained Neural~ODE beats ze
 Chronos-2. Performance therefore depends on the system, observations, hypothesis class, data,
 and access. A scalar leaderboard does not encode those conditions.
 
-The API LLM evaluation is the only billed run. Its per-cell token records give a nominal cost
-of \$110.38 for $3{,}960$ forecasts, or about \$0.03 each under the June~2026 deployments and
-pricing. The local methods incur compute cost without a per-query charge.
+The API LLM evaluation is the only billed run: \$110.38 for $3{,}960$ forecasts (about
+\$0.03 each) under the June~2026 deployments; local methods cost only compute.
 
 \section{Limitations}
 \label{sec:limitations}
@@ -750,7 +751,7 @@ hnn-rollout-mixed & 0.550 & 1.162 & 1.487 \\
 neural-ode & 0.626 & 1.304 & 1.400 \\
 neural-ode-rollout & 0.968 & 1.172 & 1.224 \\
 hnn & 0.511 & 1.337 & 1.567 \\
-lnn & 1.072 & 1.458 & 1.517 \\
+lnn & 1.072 & 1.440 & 1.556 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -780,7 +781,7 @@ hnn-rollout-mixed & 1.244 & 1.172 & 0.782 \\
 neural-ode & 1.221 & 1.095 & 1.014 \\
 neural-ode-rollout & 1.281 & 0.894 & 1.189 \\
 hnn & 1.262 & 1.303 & 0.850 \\
-lnn & 1.511 & 1.408 & 1.127 \\
+lnn & 1.525 & 1.416 & 1.127 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -800,7 +801,7 @@ trajectories. $\Delta_{\mathrm{disc}}=\mathrm{err}(\text{hidden})-
 constants. Reliability-adjusted; paired Wilcoxon, Holm-corrected. This experiment uses its
 own matched grid ($3$ models $\times$ $2$ horizons $\times$ $150$ trajectories $=900$
 pairs), not the shared held-out set, so its absolute errors are not comparable to
-Table~\ref{tab:perregime}.}\label{tab:sysid}
+Table~\ref{tab:perregime}. Per-model $\Delta$ values are computed before rounding.}\label{tab:sysid}
 \begin{tabular}{lccc}
 \toprule
 Model & disclosed & hidden & $\Delta_{\mathrm{disc}}$ \\
@@ -1006,7 +1007,7 @@ $20$\,ms error $0.005$--$0.007$\,rad against a $0.006$\,rad tracking floor. The 
 $\{0,5{\times}10^{-4},\dots,2{\times}10^{-2}\}$ selects $10^{-3}$ on Trial~1 at the $0.5$\,s
 horizon. SINDy uses a degree-two polynomial plus first-order Fourier library on Trial~1 with
 Savitzky--Golay derivatives; Chronos-2 receives a $5$\,s context resampled to $50$\,Hz and
-forecasts at most $50$ steps. Failures (non-finite rollouts, missing context) score $\pi/2$.
+forecasts at most $50$ steps. Failures score $\pi/2$; Chronos-2's are input-infeasible cells (insufficient context) rather than divergences, and the fixed-coverage rule charges both failure modes alike.
 
 \begin{table}[tbp]
 \centering\small
