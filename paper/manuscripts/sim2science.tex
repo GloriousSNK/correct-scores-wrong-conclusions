@@ -159,11 +159,13 @@ symplectic), which serve as numerical references, from the black-box methods bei
 
 \subsection{Metrics}
 \label{sec:metrics}
-The primary metric is mean absolute angle error (rad), wrapped to $[-\pi,\pi]$ and
-averaged over links and trajectories. A cell is answered only if the model returns a
-parseable, finite prediction; because scoring answered cells alone would reward abstention on
-hard cells, unanswered cells receive the random-guess baseline $\pi/2$ (the expected
-wrapped-angle error of a uniform guess), so answering is part of the score.
+The primary metric is mean absolute angle error (rad), wrapped to $[-\pi,\pi]$ and averaged
+over links and trajectories; angles alone are scored, since wrapping gives answers and
+failures one bounded scale that unbounded velocities lack. A cell is answered only if the
+model returns a parseable, finite prediction; because scoring answered cells alone would
+reward abstention on hard cells, unanswered cells receive the random-guess baseline $\pi/2$
+(the expected wrapped-angle error of a uniform guess). Answering is part of the score: the
+task is fixed-coverage forecasting, not selective prediction.
 
 \paragraph{Verification record.} Each cell retains its identifiers, prompt, raw response,
 parser outcome, prediction, token counts, and score. Local methods are reproducible from the
@@ -218,6 +220,8 @@ Every model is scored on the shared held-out grid of $360$ cells ($180$ trajecto
 $\{1,10\}$\,s); the Answered column of Table~\ref{tab:overall} gives the fraction with valid
 predictions. \texttt{grok} answers $82\%$ and \texttt{lnn} $94\%$: their ranks fall when
 missing cells receive $\pi/2$, and a mean over answered cells alone would flatter both.
+Under the strict $\pi$ bound only these two move (\texttt{grok} eight places down, the LNN
+still last), so the ordering is not an artifact of the imputation constant.
 We report $95\%$ bootstrap intervals over trajectories (LLM per-call variation excluded).
 
 Table~\ref{tab:overall} ranks the models under the access conditions of \S\ref{sec:inputs};
@@ -350,9 +354,10 @@ and Trials 2--3 supply $120$ held-out states scored as before at $\{0.1,0.5,1.0\
 
 RK4 with the published constants leads at $0.1$\,s ($0.084$\,rad, about $14\times$ the
 tracking noise) but reaches $1.25$\,rad by $1.0$\,s, indistinguishable from persistence
-($1.23$); unmodeled friction and the point-mass simplification consume its advantage within a
-second. The fitted damping trades horizons ($0.89$ vs.\ $0.82$
-at $0.5$\,s, $1.15$ vs.\ $1.25$ at $1.0$\,s). SINDy, exact on Lorenz, sits at baseline
+($1.23$; paired difference $+0.02$, CI $[-0.12,+0.16]$); unmodeled friction and the
+point-mass simplification consume its advantage within a second. The fitted damping trades
+horizons ($0.89$ vs.\ $0.82$ at $0.5$\,s, $1.15$ vs.\ $1.25$ at $1.0$\,s; the $1.0$\,s gain
+is significant, CI $[-0.20,-0.00]$). SINDy, exact on Lorenz, sits at baseline
 level here ($1.54$); the hardware's dynamics are not in its library. Chronos-2 answers $89\%$
 of cells: states shortly after the drop lack its $5$\,s context
 (Appendix~\ref{app:realdata}), and failure accounting scores them at $\pi/2$. Every check
@@ -568,7 +573,11 @@ $\{0,5{\times}10^{-4},\dots,2{\times}10^{-2}\}$ selects damping $10^{-3}$ on Tri
 horizon. SINDy uses a degree-two polynomial plus first-order Fourier library on Trial~1 with
 Savitzky--Golay derivatives; Chronos-2 receives a $5$\,s context resampled to $50$\,Hz and
 forecasts at most $50$ steps. Failures are scored at $\pi/2$; Chronos-2's are input-infeasible cells (insufficient
-context) rather than divergences, and the fixed-coverage rule scores both alike.
+context) rather than divergences, and the fixed-coverage rule scores both alike. Paired
+bootstrap differences over the $120$ states at $1.0$\,s: RK4 minus persistence $+0.018$
+($95\%$ CI $[-0.121,+0.155]$); damped minus undamped RK4 $-0.103$ ($[-0.202,-0.003]$), so
+the damping gain at the longest horizon is significant while the RK4--persistence gap is
+not.
 
 \begin{table}[tbp]
 \centering\small

@@ -231,8 +231,11 @@ sign match, and energy drift.
 \paragraph{Reliability-adjusted error.} A cell is answered only if the model returns a
 parseable, finite prediction. Reporting error over answered cells alone would reward
 abstention on hard cells. We therefore assign unanswered cells the random-guess baseline
-$\pi/2$ (the expected wrapped-angle error of a uniform guess); we also report the strict
-upper bound $\pi$. Answering is thus part of the score.
+$\pi/2$ (the expected wrapped-angle error of a uniform guess); under the strict upper bound
+$\pi$ only the incomplete-coverage models move (\S\ref{sec:reliability}). Answering is part
+of the score: the task is fixed-coverage forecasting, not selective prediction. Angles alone
+are scored, since wrapping gives answers and failures one bounded scale that unbounded
+velocities lack.
 
 \paragraph{Verification record.} For each evaluation cell we retain the trajectory identifier,
 model and deployment name, prompt, raw response, parser outcome, prediction, prompt and
@@ -379,7 +382,9 @@ simple baselines are marked $\ddagger$.}\label{tab:overall}
 
 \paragraph{Effect of missing predictions.} \texttt{grok} answers $82\%$ of the grid and
 \texttt{lnn} $94\%$: their ranks fall when missing cells receive $\pi/2$, and a mean over
-answered cells alone would flatter both.
+answered cells alone would flatter both. Under the strict $\pi$ bound only these two move
+(\texttt{grok} eight places down, the LNN still last), so the ordering is not an artifact of
+the imputation constant.
 
 \subsection{Matched disclosure and identifiability}
 \label{sec:sysid}
@@ -483,9 +488,10 @@ Appendix~\ref{app:realdata}).
 
 RK4 with the published constants leads at $0.1$\,s ($0.084$\,rad, about $14\times$ the
 tracking noise) but reaches $1.25$\,rad by $1.0$\,s, indistinguishable from persistence
-($1.23$); unmodeled friction and the point-mass simplification consume its advantage within a
-second. The fitted damping trades horizons rather than dominating ($0.89$ vs.\ $0.82$ at
-$0.5$\,s, $1.15$ vs.\ $1.25$ at $1.0$\,s). SINDy, exact on Lorenz, sits at baseline level here
+($1.23$; paired difference $+0.02$, CI $[-0.12,+0.16]$); unmodeled friction and the
+point-mass simplification consume its advantage within a second. The fitted damping trades
+horizons rather than dominating ($0.89$ vs.\ $0.82$ at $0.5$\,s, $1.15$ vs.\ $1.25$ at
+$1.0$\,s; the $1.0$\,s gain is significant, CI $[-0.20,-0.00]$). SINDy, exact on Lorenz, sits at baseline level here
 ($1.54$); the hardware's dynamics are not in its library. Chronos-2 answers $89\%$ of cells,
 since states shortly after the drop lack the $5$\,s context used here
 (Appendix~\ref{app:realdata}); failure accounting scores them at $\pi/2$. Every check
@@ -1010,7 +1016,11 @@ $\{0,5{\times}10^{-4},\dots,2{\times}10^{-2}\}$ selects damping $10^{-3}$ on Tri
 horizon. SINDy uses a degree-two polynomial plus first-order Fourier library on Trial~1 with
 Savitzky--Golay derivatives; Chronos-2 receives a $5$\,s context resampled to $50$\,Hz and
 forecasts at most $50$ steps. Failures are scored at $\pi/2$; Chronos-2's are input-infeasible cells (insufficient
-context) rather than divergences, and the fixed-coverage rule scores both alike.
+context) rather than divergences, and the fixed-coverage rule scores both alike. Paired
+bootstrap differences over the $120$ states at $1.0$\,s: RK4 minus persistence $+0.018$
+($95\%$ CI $[-0.121,+0.155]$); damped minus undamped RK4 $-0.103$ ($[-0.202,-0.003]$), so
+the damping gain at the longest horizon is significant while the RK4--persistence gap is
+not.
 
 \begin{table}[tbp]
 \centering\small
