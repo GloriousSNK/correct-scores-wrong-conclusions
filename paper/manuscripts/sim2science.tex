@@ -59,7 +59,7 @@ complete failure accounting, matched disclosure, structural identifiability, and
 transfer) on $k$-pendulum ($k\in\{1,2,3\}$) and Lorenz--63 forecasts from
 language models, a time-series foundation model, learned dynamics, sparse identification, and
 numerical integrators. Every test alters or overturns a conclusion the raw comparison invites: the
-in-sample/out-of-sample gap runs twofold to elevenfold, two exact symmetries make absolute parameter
+in-sample/out-of-sample gap runs up to elevenfold, two exact symmetries make absolute parameter
 recovery impossible, and a second system reverses the model ordering. On video-tracked
 hardware the roles invert: the RK4 model with published constants is itself imperfect, and
 its lead over simple baselines is gone within a second. A correct leaderboard can still
@@ -236,8 +236,8 @@ family reading.
 Under the equalized hidden-regime run, nearest-neighbor lookup ($0.725$) and the
 linearized pendulum ($0.855$) beat every learned model, and persistence ($1.004$) beats all
 but HNN-rollout ($0.972$), though those two intervals overlap. The stable learned models
-score $0.09$--$0.64$\,rad on their training trajectories against $0.97$--$1.14$ held out
-(Table~\ref{tab:insample}), a $1.6$--$11\times$ gap widest for the in-sample winner,
+score $0.09$--$0.63$\,rad on their training trajectories against $0.97$--$1.14$ held out
+(Table~\ref{tab:insample}), a $1.7$--$11\times$ gap widest for the in-sample winner,
 the mixed-window Neural~ODE.
 
 SINDy ($0.883$\,rad) and NVAR ($1.248$) appear only on the two-seed replication subset
@@ -497,12 +497,12 @@ $\{1,10\}$\,s with the harness inference path. The in-sample best is the most ov
 \toprule
 Model & In-sample & Held-out & Ratio \\
 \midrule
-neural-ode & 0.610 & 1.110 & 1.8 \\
+neural-ode & 0.625 & 1.110 & 1.8 \\
 neural-ode-rollout & 0.382 & 1.121 & 2.9 \\
 neural-ode-rollout-mixed & 0.092 & 1.036 & 11.3 \\
-hnn & 0.638 & 1.138 & 1.8 \\
-hnn-rollout & 0.605 & 0.972 & 1.6 \\
-hnn-rollout-mixed & 0.534 & 1.066 & 2.0 \\
+hnn & 0.568 & 1.138 & 2.0 \\
+hnn-rollout & 0.560 & 0.972 & 1.7 \\
+hnn-rollout-mixed & 0.522 & 1.066 & 2.0 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -600,7 +600,10 @@ context) rather than divergences, and the fixed-coverage rule scores both alike.
 bootstrap differences over the $120$ states at $1.0$\,s: RK4 minus persistence $+0.018$
 ($95\%$ CI $[-0.121,+0.155]$); damped minus undamped RK4 $-0.103$ ($[-0.202,-0.003]$), so
 the damping gain at the longest horizon is significant while the RK4--persistence gap is
-not.
+not. States sampled along a trajectory are temporally dependent, so we repeat both with a
+moving-block bootstrap within each trial (blocks of $10$ consecutive states, ${\sim}4$\,s):
+the conclusions are unchanged (damped minus RK4 $[-0.179,-0.019]$; RK4 minus persistence
+$[-0.131,+0.064]$).
 
 \begin{table}[tbp]
 \centering\small
