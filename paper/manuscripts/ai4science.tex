@@ -86,11 +86,16 @@ reference model itself as the imperfect one.
 Our contribution is a claim audit for dynamical-system forecasts. It tests held-out
 generalization, counts every failed forecast, records the information available to each
 method, changes disclosure on identical trajectories, checks identifiability before scoring
-parameter recovery, and tests whether conclusions transfer to a second system. Table~\ref{tab:audit-summary} states the conclusion before and after each test.
-The central result is empirical and direct: all five tests alter or reject a conclusion
-supported by the unaudited comparison. These are conclusions the field draws:
-zero-shot forecasters are routinely scored without failure accounting or matched controls
-\citep{gruver2023llmtime,zhang2025zeroshotchaos}, and our setting mirrors that practice.
+parameter recovery, and tests whether conclusions transfer to a second system. The five are
+indexed to the claims, not drawn from a taxonomy: each tests one inference step between a
+score and a conclusion (sample to population, answered cells to full task, correlation to
+attribution, accuracy to parameter recovery, one system to a family claim), and claims we do
+not make would need other checks, such as calibration for probabilistic forecasts.
+Table~\ref{tab:audit-summary} states the conclusion before and after each test. The central
+result is empirical and direct: all five tests alter or reject a conclusion supported by the
+unaudited comparison, and these are conclusions the field draws: zero-shot forecasters are
+routinely scored without failure accounting or matched controls
+\citep{gruver2023llmtime,zhang2025zeroshotchaos}.
 
 \begin{table}[tbp]
 \centering\footnotesize\renewcommand{\arraystretch}{0.94}
@@ -548,11 +553,9 @@ $0.543$ (95\% CI $[0.498,0.589]$) versus $0.549$ ($[0.505,0.593]$). No effect re
 Holm correction, so the larger study rejects the apparent per-$k$ trend in the primary grid.
 
 \section{Discussion}
-The audit changes five conclusions supported by the raw comparison. Held-out evaluation
-exposes a roughly fourfold learned-model generalization gap; failure accounting penalizes
-incomplete coverage; the matched disclosure test reverses the disclosure effect; exact
-symmetries rule out absolute parameter recovery; and Lorenz--63 changes the model ordering.
-These are changes to the scientific claim, not to presentation.
+The audit changes five conclusions supported by the raw comparison
+(Table~\ref{tab:audit-summary}); the changes are to the scientific claim, not to
+presentation.
 
 More data improves the Neural~ODE from $1.090$ to $0.861$\,rad without closing the gap to
 known-equation integration; HNN improvement plateaus. On Lorenz, SINDy is nearly exact because

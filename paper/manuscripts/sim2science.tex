@@ -79,15 +79,17 @@ differs in observation model and hypothesis class; a hardware replication of the
 
 Our contribution is a claim audit for dynamical-system forecasts: held-out generalization,
 complete failure accounting, matched disclosure on identical trajectories, identifiability
-checked before scoring recovery, and transfer to a second system.
+checked before scoring recovery, and transfer to a second system. The five are indexed to
+the claims, not drawn from a taxonomy: each tests one inference step between a score and a
+conclusion (sample to population, answered cells to full task, correlation to attribution,
+accuracy to parameter recovery, one system to a family claim), and claims we do not make
+would need other checks, such as calibration for probabilistic forecasts.
 Table~\ref{tab:audit-summary} states the conclusion before and after each test; all five
-alter or reject a conclusion the unaudited comparison supports. These are conclusions the
-field draws: zero-shot forecasters are routinely scored without failure accounting
-or matched controls \citep{gruver2023llmtime,zhang2025zeroshotchaos}; ours mirrors that
-practice. Three of the checks are the familiar concerns
-of imperfect models applied to the evaluation itself: misspecification (a Hamiltonian prior
-on damped dynamics), identifiability (exact parameter degeneracies), and transfer (a
-hypothesis class containing one system and not the other).
+alter or reject a conclusion the unaudited comparison supports, and these are conclusions
+the field draws: zero-shot forecasters are routinely scored without failure accounting or
+matched controls \citep{gruver2023llmtime,zhang2025zeroshotchaos}. Three of the checks are
+the familiar concerns of imperfect models applied to the evaluation itself: misspecification
+(a Hamiltonian prior on damped dynamics), identifiability, and transfer.
 
 \begin{table}[tbp]
 \centering\footnotesize\renewcommand{\arraystretch}{0.90}
