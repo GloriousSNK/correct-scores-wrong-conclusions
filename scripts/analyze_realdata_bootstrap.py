@@ -72,6 +72,20 @@ def main():
                   f"iid [{lo_i:+.3f}, {hi_i:+.3f}]  "
                   f"block [{lo_b:+.3f}, {hi_b:+.3f}]")
 
+    # Block-length sensitivity for the borderline comparison (damped - rk4
+    # at 1.0 s): the significance should not hinge on the choice of block.
+    global BLOCK
+    print("--- block-length sensitivity, damped - rk4 at 1.0 s ---")
+    sa, sb = series(df, "physics-rk4-damped", 1.0), series(df, "physics-rk4", 1.0)
+    diffs = {tr: sa[tr] - sb[tr] for tr in TRIALS}
+    default_block = BLOCK
+    for BLOCK in (5, 10, 15, 20, 30):
+        lo, hi = block_ci(diffs, np.random.default_rng(0))
+        verdict = "excludes 0" if hi < 0 else "INCLUDES 0"
+        print(f"  block={BLOCK:2d} ({BLOCK * 0.4:4.1f} s): "
+              f"[{lo:+.3f}, {hi:+.3f}]  {verdict}")
+    BLOCK = default_block
+
 
 if __name__ == "__main__":
     main()
