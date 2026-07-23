@@ -63,7 +63,8 @@ MAIN = [
     # two-seed replication (summaries + weights; datasets regenerate from seeds)
     "results/seed_sweep_two_seed_focused/summary",
     "results/seed_sweep_two_seed_focused/checkpoints",
-    # hardware check: tracked angles (Myers et al., GPLv3) + license
+    # hardware check: tracked angles (Myers et al., Mendeley CC BY 4.0
+    # listing; the deposit ships a GPLv3 license file, copied along)
     "results/realdata_myers/Video_Tracking_Data/Trial1",
     "results/realdata_myers/Video_Tracking_Data/Trial2",
     "results/realdata_myers/Video_Tracking_Data/Trial3",
@@ -119,7 +120,8 @@ Anonymized artifact for double-blind review. Layout:
   results/realdata_myers/    tracked angle series for the hardware check,
                              from the open dataset of Myers et al. (HardwareX
                              2020, Mendeley Data doi:10.17632/z4hvxjgtbz.2,
-                             GPLv3; license included)
+                             CC BY 4.0 listing; the deposit's GPLv3 license
+                             file is included alongside)
 
 Key reproduction commands (Python 3.13, packages in requirements.txt):
 
