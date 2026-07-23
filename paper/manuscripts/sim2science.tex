@@ -59,7 +59,7 @@ complete failure accounting, matched disclosure, structural identifiability, and
 transfer) on $k$-pendulum ($k\in\{1,2,3\}$) and Lorenz--63 forecasts from
 language models, a time-series foundation model, learned dynamics, sparse identification, and
 numerical integrators. Every test alters or overturns a conclusion the raw comparison invites: the
-in-sample/out-of-sample gap is fourfold, two exact symmetries make absolute parameter
+in-sample/out-of-sample gap runs twofold to elevenfold, two exact symmetries make absolute parameter
 recovery impossible, and a second system reverses the model ordering. On video-tracked
 hardware the roles invert: the RK4 model with published constants is itself imperfect, and
 its lead over simple baselines is gone within a second. A correct leaderboard can still
@@ -87,8 +87,8 @@ would need other checks, such as calibration for probabilistic forecasts.
 Table~\ref{tab:audit-summary} states the conclusion before and after each test; all five
 alter or reject a conclusion the unaudited comparison supports, and these are conclusions
 the field draws: zero-shot forecasters are routinely scored without failure accounting or
-matched controls \citep{gruver2023llmtime,zhang2025zeroshotchaos}. Three of the checks are
-the familiar concerns of imperfect models applied to the evaluation itself: misspecification
+matched controls \citep{gruver2023llmtime,zhang2025zeroshotchaos}. Three checks are
+the familiar concerns of imperfect models applied to the evaluation: misspecification
 (a Hamiltonian prior on damped dynamics), identifiability, and transfer.
 
 \begin{table}[tbp]
@@ -104,7 +104,7 @@ Answered forecasts represent model performance. &
 Incomplete coverage lowers reliability-adjusted performance. \\
 Generalization &
 Learned dynamics forecast accurately. &
-At this budget, error rises about fourfold; simple baselines win. \\
+Held-out error is up to $11\times$ in-sample; simple baselines win. \\
 Disclosure &
 Withholding constants improves forecasts. &
 Matched: small, model-dependent ($+0.069$\,rad pooled). \\
@@ -134,8 +134,8 @@ coarser-step variant is a reference by construction, not a competitor.
 \subsection{Regimes and grid}
 Three regimes test generalization: \texttt{normal} ($g{=}9.81$, undamped),
 \texttt{changed\_disclosed} ($g{=}3.71$, damped), and \texttt{changed\_hidden} ($g{=}1.62$,
-damped, constants withheld; full values in Table~\ref{tab:regimes}). An evaluation cell is a
-tuple (model, $k$, regime, horizon), with horizons
+damped, constants withheld; full values in Table~\ref{tab:regimes}). A cell is a
+tuple (model, $k$, regime, horizon) with horizons
 $\{0.01,1,10,60\}$\,s. The LLM grid also varies modality and prompting; all comparisons here
 use the coordinate modality with direct prompting.
 
@@ -210,7 +210,7 @@ rollouts are failures at $\pi/2$.
 \paragraph{Lorenz replication.} A secondary Lorenz--63 test compares numerical references,
 persistence, SINDy, NVAR, a Neural~ODE trained on $20$ single-seed trajectories, and zero-shot
 Chronos-2 on five five-trajectory held-out seeds, reporting training-normalized coordinate MAE
-at $\{0.1,0.5,1.0\}$\,s (configuration in Appendix~C). HNN and LNN are omitted because
+at $\{0.1,0.5,1.0\}$\,s (Appendix~C). HNN and LNN are omitted:
 Lorenz--63 is dissipative and non-Hamiltonian.
 
 \section{Results}
@@ -236,8 +236,9 @@ family reading.
 Under the equalized hidden-regime run, nearest-neighbor lookup ($0.725$) and the
 linearized pendulum ($0.855$) beat every learned model, and persistence ($1.004$) beats all
 but HNN-rollout ($0.972$), though those two intervals overlap. The stable learned models
-score about $0.26$\,rad on their training trajectories and $0.97$--$1.14$\,rad out of sample, so
-in-sample evaluation understates error about fourfold.
+score $0.09$--$0.64$\,rad on their training trajectories against $0.97$--$1.14$ held out
+(Table~\ref{tab:insample}), a $1.6$--$11\times$ gap widest for the in-sample winner,
+the mixed-window Neural~ODE.
 
 SINDy ($0.883$\,rad) and NVAR ($1.248$) appear only on the two-seed replication subset
 (Table~\ref{tab:replication}); SINDy lands between Chronos-2 and the learned models, NVAR near
@@ -365,9 +366,9 @@ transfers, and the ordering differs from both synthetic orderings.
 
 \subsection{Diagnostics}
 \label{sec:behavior}
-Appendix~\ref{app:diagnostics} reports the remaining diagnostics. Two matter most: the
+Appendix~\ref{app:diagnostics} reports the rest; two matter most: the
 physical-fidelity check localizes a misspecification (a symplectic HNN rollout leaves energy drift
-unchanged, so the fault is the learned Hamiltonian, not the integrator), and
+unchanged: the fault is the learned Hamiltonian, not the integrator), and
 every black-box family saturates near the chaotic noise floor by $1$\,s, hence the
 $\{1,10\}$\,s window. Error rises with $k$ for all but one model; the hidden regime is easier
 for most models (the \S\ref{sec:sysid} confound); rollout loss is not uniformly better; and
@@ -375,10 +376,11 @@ Chronos-2's two modes are indistinguishable ($n{=}720$).
 
 \section{Discussion and conclusion}
 Performance depends on system, observations, hypothesis class, data, and access, which a
-scalar leaderboard does not encode: each of the five checks changes a claim it supports, so benchmarks should report the checks, training budgets, and information access with
+scalar leaderboard does not encode: each of the five checks changes a claim it supports, so
+benchmarks should report checks, training budgets, and information access with
 the result. The synthetic systems make each check's effect
 visible against exact ground truth; the hardware check runs the audit where the reference
-model itself is imperfect; all records needed to repeat it accompany the paper.
+model itself is imperfect; all records to repeat it accompany the paper.
 \textbf{Limitations.}\label{sec:limitations} The LLM grid uses one held-out seed; the Lorenz
 test has five trajectories per seed, the hardware check three trials of one apparatus, SINDy
 needs the true degree in its library, and foundation-model corpora may contain pendulum-like
@@ -485,6 +487,26 @@ gradients through the unroll; mixed-window rollout trains on several window leng
 automatic differentiation; the LNN trains at full scale ($67$k samples, hidden 256) on a CUDA GPU.
 Chronos-2 resamples the context to at most $512$ points and forecasts at most $64$ steps.
 
+\begin{table}[tbp]
+\centering\small
+\caption{In-sample versus held-out error (rad) for the six stable learned models: mean over
+the nine training trajectories versus the shared held-out grid, both at horizons
+$\{1,10\}$\,s with the harness inference path. The in-sample best is the most overfit.}
+\label{tab:insample}
+\begin{tabular}{lccc}
+\toprule
+Model & In-sample & Held-out & Ratio \\
+\midrule
+neural-ode & 0.610 & 1.110 & 1.8 \\
+neural-ode-rollout & 0.382 & 1.121 & 2.9 \\
+neural-ode-rollout-mixed & 0.092 & 1.036 & 11.3 \\
+hnn & 0.638 & 1.138 & 1.8 \\
+hnn-rollout & 0.605 & 0.972 & 1.6 \\
+hnn-rollout-mixed & 0.534 & 1.066 & 2.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \paragraph{Reproducibility records.} The anonymized artifact accompanying this submission
 contains the code, prompts, trained weights, held-out specifications, and the per-cell
 records for the main held-out comparison ($2{,}160$ records), the matched disclosure test
@@ -566,9 +588,10 @@ Savitzky--Golay filter (window $42$\,ms, cubic, analytic derivative). The record
 with the pendulum positioned by hand, so the free drop is detected as the first time either
 link exceeds $4$\,rad/s; evaluation states are drawn evenly from $0.2$ to $24$\,s after the
 drop, $60$ per trial. The tracker zeroes its angle at the first frame, leaving a
-gravity-referenced offset per link that we select from $\{0,\pi\}$ by whichever choice lets the
-reference model track at a $20$\,ms horizon; the selected offsets are zero for every trial, with
-$20$\,ms error of $0.005$--$0.007$\,rad against a $0.006$\,rad tracking floor. A grid search over
+gravity-referenced offset per link; every trial ends hanging at rest with tracked angles at
+exact multiples of $360^{\circ}$ (within $0.08^{\circ}$), which fixes the offset at zero
+independently of any model. A $20$\,ms physics-tracking check agrees, with error of
+$0.005$--$0.007$\,rad against a $0.006$\,rad tracking floor. A grid search over
 $\{0,5{\times}10^{-4},\dots,2{\times}10^{-2}\}$ selects damping $10^{-3}$ on Trial~1 at the $0.5$\,s
 horizon. SINDy uses a degree-two polynomial plus first-order Fourier library on Trial~1 with
 Savitzky--Golay derivatives; Chronos-2 receives a $5$\,s context resampled to $50$\,Hz and

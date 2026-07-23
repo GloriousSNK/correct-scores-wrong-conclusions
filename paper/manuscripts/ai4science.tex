@@ -58,7 +58,7 @@ failure accounting, matched disclosure, structural identifiability, and cross-sy
 transfer. We apply these tests to $k$-pendulum ($k\in\{1,2,3\}$) and Lorenz--63 forecasts from
 language models, a time-series foundation model, learned dynamics, sparse identification, and
 numerical integrators. Each test changes a substantive conclusion. Learned-model error rises
-from about $0.26$\,rad on training trajectories to $0.97$--$1.14$\,rad on held-out
+from $0.09$--$0.64$\,rad on training trajectories to $0.97$--$1.14$\,rad on held-out
 trajectories, where linearized dynamics and nearest-neighbor lookup perform better. Retaining
 failed forecasts lowers the reported performance of models with incomplete coverage. An
 unmatched comparison says that hiding physical constants helps; a paired intervention instead
@@ -111,7 +111,7 @@ Answered forecasts represent model performance. &
 Incomplete coverage lowers reliability-adjusted performance. \\
 Generalization &
 Learned dynamics forecast accurately. &
-At this training budget, error rises about fourfold and simple baselines perform better. \\
+At this budget, held-out error is up to $11\times$ in-sample, and simple baselines perform better. \\
 Disclosure &
 Withholding constants improves forecasts. &
 Matched, the effect is small and model-dependent ($+0.069$\,rad pooled). \\
@@ -300,11 +300,11 @@ competitor.
 \paragraph{Baselines.} Four reference baselines use the same grid: persistence
 ($\theta_T{=}\theta_0$), constant velocity ($\theta_T{=}\theta_0{+}\omega_0T$), a
 small-angle linearized model, and a nearest-neighbor analog forecast from the matching
-matching $(k,\mathrm{regime})$ training trajectory. The nearest-neighbor baseline uses the same data as the
+$(k,\mathrm{regime})$ training trajectory. The nearest-neighbor baseline uses the same data as the
 learned models.
 
-On both held-out seeds (equal-weighted; \S
-ef{sec:replication}) we also fit SINDy with a degree-two polynomial library and
+On both held-out seeds (equal-weighted; \S\ref{sec:replication}) we also fit SINDy
+with a degree-two polynomial library and
 STLSQ, and nonlinear vector autoregression (NVAR) with two delays, degree-two features, and
 ridge regression. Divergent rollouts are retained as failures and receive the same $\pi/2$
 penalty.
@@ -336,9 +336,10 @@ conditions, not about model families; the Lorenz test rejects the family reading
 
 Under the equalized hidden-regime run, nearest-neighbor lookup ($0.725$) and the
 linearized pendulum ($0.855$) beat every learned model, and persistence ($1.004$) beats all
-but HNN-rollout ($0.972$), though those two intervals overlap. The stable learned models score about $0.26$\,rad on their training
-trajectories and $0.97$--$1.14$\,rad on the held-out set, so in-sample evaluation understates
-their error by about a factor of four.
+but HNN-rollout ($0.972$), though those two intervals overlap. The stable learned models
+score $0.09$--$0.64$\,rad on their training trajectories against $0.97$--$1.14$ held out
+(Table~\ref{tab:insample}), a $1.6$--$11\times$ gap widest for the in-sample winner,
+the mixed-window Neural~ODE.
 
 Two further data-driven methods appear only on the two-seed replication subset, so we report them
 in Table~\ref{tab:replication} rather than in the main comparison: sparse identification
@@ -668,6 +669,26 @@ training set contains only \emph{nine} trajectories, one for each $(k,\mathrm{re
 budget study uses nested subsets of 1, 5, and 20 trajectories per eligible cell and three
 training initializations. Neural~ODE therefore sees $9$, $45$, or $180$ trajectories; HNN sees $3$,
 $15$, or $60$ undamped trajectories. Evaluation uses the same two held-out seeds throughout.
+
+\begin{table}[tbp]
+\centering\small
+\caption{In-sample versus held-out error (rad) for the six stable learned models: mean over
+the nine training trajectories versus the shared held-out grid, both at horizons
+$\{1,10\}$\,s with the harness inference path. The in-sample best is the most overfit.}
+\label{tab:insample}
+\begin{tabular}{lccc}
+\toprule
+Model & In-sample & Held-out & Ratio \\
+\midrule
+neural-ode & 0.610 & 1.110 & 1.8 \\
+neural-ode-rollout & 0.382 & 1.121 & 2.9 \\
+neural-ode-rollout-mixed & 0.092 & 1.036 & 11.3 \\
+hnn & 0.638 & 1.138 & 1.8 \\
+hnn-rollout & 0.605 & 0.972 & 1.6 \\
+hnn-rollout-mixed & 0.534 & 1.066 & 2.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \paragraph{Reproducibility records.} The anonymized artifact accompanying this submission
 contains the code, prompts, trained weights, held-out specifications, and the per-cell
@@ -1009,9 +1030,10 @@ Savitzky--Golay filter (window $42$\,ms, cubic, analytic derivative). The record
 with the pendulum positioned by hand, so the free drop is detected as the first time either
 link exceeds $4$\,rad/s; evaluation states are drawn evenly from $0.2$ to $24$\,s after the
 drop, $60$ per trial. The tracker zeroes its angle at the first frame, leaving a
-gravity-referenced offset per link that we select from $\{0,\pi\}$ by whichever choice lets the
-reference model track at a $20$\,ms horizon; the selected offsets are zero for every trial, with
-$20$\,ms error of $0.005$--$0.007$\,rad against a $0.006$\,rad tracking floor. A grid search over
+gravity-referenced offset per link; every trial ends hanging at rest with tracked angles at
+exact multiples of $360^{\circ}$ (within $0.08^{\circ}$), which fixes the offset at zero
+independently of any model. A $20$\,ms physics-tracking check agrees, with error of
+$0.005$--$0.007$\,rad against a $0.006$\,rad tracking floor. A grid search over
 $\{0,5{\times}10^{-4},\dots,2{\times}10^{-2}\}$ selects damping $10^{-3}$ on Trial~1 at the $0.5$\,s
 horizon. SINDy uses a degree-two polynomial plus first-order Fourier library on Trial~1 with
 Savitzky--Golay derivatives; Chronos-2 receives a $5$\,s context resampled to $50$\,Hz and

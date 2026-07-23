@@ -15,8 +15,10 @@ Design
               error over both links; failures scored at pi/2.
 
 The tracker zeroes its angle at the first frame, so the gravity-referenced
-offset is unknown a priori; it is selected once per link from {0, pi} by which
-choice lets the physics model track at a 20 ms horizon (printed below).
+offset is unknown a priori. Every trial ends hanging at rest with tracked
+angles at exact multiples of 360 degrees, which fixes the offset at zero
+independently of any model; the 20 ms physics-tracking selection below agrees
+and serves as a cross-check.
 
     python scripts/eval_realdata_myers.py [--skip-chronos]
 """
