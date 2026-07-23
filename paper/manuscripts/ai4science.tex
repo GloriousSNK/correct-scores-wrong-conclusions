@@ -69,14 +69,15 @@ ordering also fails to transfer to Lorenz--63, where SINDy recovers the polynomi
 numerical precision. On video-tracked hardware the roles invert: the RK4 model with published
 constants is itself imperfect, and its lead over simple baselines is gone within a second.
 These results show that a correct leaderboard can still support incorrect
-scientific conclusions. We release the prompts, outputs, checkpoints, seeds, and compute
-records needed to repeat the audit.
+scientific conclusions: an unaudited score is not a verification. We release the prompts,
+outputs, checkpoints, seeds, and compute records needed to repeat the audit.
 \end{abstract}
 
 \section{Introduction}
-Scientific claims require more than low forecast error. A result may depend on training
-trajectories, dropped failures, unmatched inputs, an unidentifiable target, or one favorable
-system. We study these failure modes directly. Given state $\mathbf{s}_t$, the task is to
+Scientific claims require more than low forecast error. As AI systems produce scientific
+results faster than they can be checked, the evaluation itself needs verifying: a result
+may depend on training trajectories, dropped failures, unmatched inputs, an unidentifiable
+target, or one favorable system. We study these failure modes directly. Given state $\mathbf{s}_t$, the task is to
 predict $\mathbf{s}_{t+T}$. The $k$-link pendulum is integrable at $k{=}1$ and chaotic for
 $k{\ge}2$, has high-precision ground truth, and permits controlled changes to physical
 metadata. Lorenz--63 provides a second system with a different observation model and
@@ -98,7 +99,7 @@ routinely scored without failure accounting or matched controls
 \citep{gruver2023llmtime,zhang2025zeroshotchaos}.
 
 \begin{table}[tbp]
-\centering\footnotesize\renewcommand{\arraystretch}{0.94}
+\centering\footnotesize\renewcommand{\arraystretch}{0.90}
 \caption{Conclusions before and after the claim audit. Each row changes one part of the
 evaluation while preserving the relevant model outputs or comparison set.}
 \label{tab:audit-summary}
@@ -159,8 +160,8 @@ score because models are compared at fixed task coverage.
 \paragraph{Choice of systems.} We use the $k$-link pendulum to vary the number of coupled links
 while retaining a high-precision numerical solution. Its constants can also be hidden without
 changing the underlying trajectory, which permits the matched test in \S\ref{sec:sysid}.
-The smaller Lorenz--63 experiment repeats the local-model comparison on a second chaotic
-system. We did not rerun the LLM or disclosure experiments on Lorenz.
+The smaller Lorenz--63 experiment repeats the local-model comparison on a second
+chaotic system; the LLM and disclosure experiments were not rerun there.
 
 \subsection{Task and systems}
 Given the state $\mathbf{s}_0=(\theta_1,\dots,\theta_k,\omega_1,\dots,\omega_k)\in
@@ -202,9 +203,9 @@ $t{=}0$. For learned models, hidden-regime cells are equalized by withholding hi
 and using normal-regime prior constants. A separate asymmetry runs in the opposite direction:
 the LLMs are large hosted models, whereas the learned models are small
 ($256$-wide, $3$-layer MLPs trained on a single $8$\,GB GPU; Appendix~B). The behavior of
-larger physics-informed networks is outside the scope of this study. We separate
-known-physics methods (RK4, Euler, symplectic) from black-box methods (LLMs, Chronos,
-learned dynamics); the former are numerical references.
+larger physics-informed networks is outside this study's scope. We separate known-physics
+methods (RK4, Euler, symplectic) from black-box methods (LLMs, Chronos, learned
+dynamics); the former are numerical references.
 
 \begin{table}[tbp]
 \centering\small
@@ -312,7 +313,7 @@ penalty.
 \paragraph{Lorenz replication.} A secondary Lorenz--63 test compares numerical references,
 persistence, SINDy, NVAR, a Neural~ODE trained on $20$ single-seed trajectories, and zero-shot
 Chronos-2 on five five-trajectory held-out seeds. We report training-normalized coordinate MAE at
-$\{0.1,0.5,1.0\}$\,s; Appendix~C gives the full configuration. HNN and LNN are omitted because
+$\{0.1,0.5,1.0\}$\,s (full configuration in Appendix~C). HNN and LNN are omitted:
 Lorenz--63 is dissipative and non-Hamiltonian.
 
 \section{Results}
@@ -322,7 +323,7 @@ The shared held-out grid contains $360$ cells: 180 trajectories at horizons $\{1
 Every model is evaluated on that grid. The Answered column in Table~\ref{tab:overall} gives the
 fraction of cells with valid predictions.
 Confidence intervals are $95\%$ paired bootstrap over trajectories ($B{=}10^4$); for LLMs
-they do not include per-call sampling variation.
+they exclude per-call sampling variation.
 
 Table~\ref{tab:overall} ranks the models on the pendulum under the access conditions in
 \S\ref{sec:inputs}. The ranking is conditional on those inputs, this training budget, and this
@@ -348,7 +349,7 @@ and nonlinear vector autoregression (NVAR, $1.248$) is among the weakest data-dr
 near constant velocity.
 
 \begin{table}[tbp]
-\centering\small\renewcommand{\arraystretch}{0.94}
+\centering\small\renewcommand{\arraystretch}{0.90}
 \caption{Out-of-sample cross-family comparison on the shared held-out set ($360$ cells, horizons
 $\{1,10\}$\,s). Reliability-adjusted mean angle error (rad): unanswered or missing cells
 scored at $\pi/2$; $95\%$ bootstrap CI. RK4 generates the data and is included
@@ -528,8 +529,7 @@ are now $0.71$--$1.19$; the earlier values favor models given the true constants
 low-gravity hidden constants ($g{=}1.62$) produce slower, less-divergent motion over a fixed
 horizon, so the unadjusted hidden-regime advantage is a difficulty confound
 (\S\ref{sec:sysid}). A cluster bootstrap over complete held-out trajectories changes no
-confidence interval by more than ${\sim}0.03$\,rad and leaves the ranking unchanged. The
-original bootstrap's treatment of correlated cells does not determine the reported gaps.
+confidence interval by more than ${\sim}0.03$\,rad and leaves the ranking unchanged.
 
 \paragraph{Training-objective check.}
 \label{sec:objective}
@@ -538,7 +538,7 @@ equalized hidden-regime run, rollout loss is not uniformly better: mixed-window 
 is lower for the Neural~ODE, while single-$k$ rollout is lower for the HNN. Full-scale CUDA
 training of the LNN gives the highest learned-model error ($1.356$), with $6\%$ of cells
 diverging or exceeding the rollout timeout after memory-safe recovery. We make no
-architecture-wide claim about LNNs; under our implementation and protocol the LNN is
+architecture-wide claim about LNNs; under our implementation the LNN is
 numerically unstable and generalizes poorly out of sample.
 
 \paragraph{Physical-fidelity check.}
@@ -548,10 +548,11 @@ drift on the undamped (\texttt{normal}) regime, where true energy is constant. T
 reports mean absolute drift over $10$\,s, normalized by $E^{*}{=}g\sum_i m_i L_i$, and the
 fraction of bounded rollouts. The learned models do not match numerical integrators on this
 axis: the lowest-drift learned model is $0.779$, compared with $0.066$ for the symplectic
-integrator and $0.494$ for Euler. Symplectic rollout of the HNN leaves drift nearly unchanged.
-Changing the integrator therefore does not account for the HNN's drift.
-At the derivative-matching objective, HNN drift is comparable to Neural~ODE drift ($4.27$ vs.\ $4.35$); the LNN is unstable, with $27\%$ bounded rollouts. These results use the same nine-trajectory learned-model budget
-as the main comparison.
+integrator and $0.494$ for Euler. Symplectic rollout of the HNN leaves drift nearly
+unchanged, so the integrator does not account for the HNN's drift. At the
+derivative-matching objective, HNN drift is comparable to Neural~ODE drift ($4.27$ vs.\
+$4.35$); the LNN is unstable, with $27\%$ bounded rollouts. These results use the
+nine-trajectory budget of the main comparison.
 
 \paragraph{Multivariate time-series check.}
 \label{sec:multivariate}
@@ -567,31 +568,27 @@ presentation.
 More data improves the Neural~ODE from $1.090$ to $0.861$\,rad without closing the gap to
 known-equation integration; HNN improvement plateaus. On Lorenz, SINDy is nearly exact because
 the vector field lies in its library, while a system-trained Neural~ODE beats zero-shot
-Chronos-2. Performance therefore depends on the system, observations, hypothesis class, data,
-and access. A scalar leaderboard does not encode those conditions.
-
-The API LLM evaluation is the only billed run: \$110.38 for $3{,}960$ forecasts (about
-\$0.03 each) under the June~2026 deployments; local methods cost only compute.
+Chronos-2. Performance therefore depends on system, observations, hypothesis class, data,
+and access---conditions a scalar leaderboard does not encode.
 
 \section{Limitations}
 \label{sec:limitations}
-The full LLM grid uses one held-out seed; the local replication adds a second with fewer
-trajectories per cell. The budget study uses three training initializations and two held-out
-seeds. Inputs differ by method as listed in Table~\ref{tab:inputs}. The Lorenz test uses five
-trajectories in each of five held-out seeds and excludes API LLMs, HNN, and LNN; the hardware
-check uses three trials of one apparatus with filtered velocities. SINDy's
-result depends on a library containing the true polynomial degree. Predictions are single
-endpoint states, conservation tests cover only the undamped regime, and we cannot rule out
-pendulum-like trajectories in the foundation models' training corpora.
+The full LLM grid uses one held-out seed (the local replication adds a second, with fewer
+trajectories per cell); the budget study uses three initializations and two held-out seeds;
+inputs differ by method (Table~\ref{tab:inputs}). The Lorenz test, five trajectories in each
+of five held-out seeds, excludes API LLMs, HNN, and LNN; the hardware check has three trials
+of one apparatus with filtered velocities; SINDy needs the true polynomial degree in its
+library. Predictions are single endpoint states, conservation tests cover only the undamped
+regime, and we cannot rule out pendulum-like trajectories in the foundation models' training
+corpora.
 
 \section{Conclusion}
-Correct scores can support wrong scientific conclusions. Here, generalization, failure
+Correct scores can support wrong scientific conclusions: generalization, failure
 accounting, matched disclosure, identifiability, and cross-system transfer each change a
-claim supported by the raw leaderboard, and forecasting benchmarks should report those
-checks, training budgets, and information access as part of the result. The synthetic systems
-make each check's effect visible against exact ground truth; the hardware check runs the same
-audit where the reference model itself is imperfect, the setting this work was built to
-reach.
+claim the raw leaderboard supports, so benchmarks should report those checks, budgets, and
+access with the result. The synthetic systems give every check exact ground truth; the
+hardware check runs the audit where the reference model itself is imperfect---the regime any
+surrogate verifier of real experiments must operate in.
 
 % Camera-ready only (deanonymizing; keep commented for double-blind review):
 %
@@ -689,6 +686,9 @@ hnn-rollout-mixed & 0.522 & 1.066 & 2.0 \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\paragraph{Compute cost.} The API LLM evaluation is the only billed run (\$110.38 for
+$3{,}960$ forecasts, June~2026 deployments); local methods cost only compute.
 
 \paragraph{Reproducibility records.} The anonymized artifact accompanying this submission
 contains the code, prompts, trained weights, held-out specifications, and the per-cell
