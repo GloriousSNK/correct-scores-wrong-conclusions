@@ -1038,7 +1038,9 @@ $\{0,5{\times}10^{-4},\dots,2{\times}10^{-2}\}$ selects damping $10^{-3}$ on Tri
 horizon. SINDy uses a degree-two polynomial plus first-order Fourier library on Trial~1 with
 Savitzky--Golay derivatives; Chronos-2 receives a $5$\,s context resampled to $50$\,Hz and
 forecasts at most $50$ steps. Failures are scored at $\pi/2$; Chronos-2's are input-infeasible cells (insufficient
-context) rather than divergences, and the fixed-coverage rule scores both alike. Paired
+context) rather than divergences, and the fixed-coverage rule scores both alike. The tracking
+dataset has been public since 2020 and may appear in foundation-model corpora; contamination
+would inflate Chronos-2's score, so its baseline-level result is, if anything, conservative. Paired
 bootstrap differences over the $120$ states at $1.0$\,s: RK4 minus persistence $+0.018$
 ($95\%$ CI $[-0.121,+0.155]$); damped minus undamped RK4 $-0.103$ ($[-0.202,-0.003]$), so
 the damping gain at the longest horizon is significant while the RK4--persistence gap is
