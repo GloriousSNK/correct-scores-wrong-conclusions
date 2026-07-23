@@ -43,10 +43,12 @@ MAIN = [
     "results/dataset_llm_sysid_context",
     # trained weights (primary models)
     "results/learned_models",
-    # per-cell records: main grid, disclosure test, modality/prompting grid
+    # per-cell records: main grid, disclosure test, modality/prompting grid,
+    # and the second temperature-0 run used for the repeatability analysis
     "results/llm_main",
     "results/llm_sysid",
     "results/checkpoints",
+    "results/checkpoints_bon/run2",
     "results/hosted_repeat_plan",
     # aggregated records and analysis tables
     "results/summary_llm",

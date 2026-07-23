@@ -182,8 +182,8 @@ Three regimes test generalization to non-standard constants (Table~\ref{tab:regi
 model. This is a matched metadata-disclosure test; a single state contains no observed dynamics
 from which to identify the constants. An evaluation cell is a tuple (model, $k$, regime,
 horizon), with horizons $\{0.01,1,10,60\}$\,s. The full LLM grid also varies input modality
-and prompting; every comparison here uses the coordinate modality with direct prompting; the other
-axes appear only in the released records.
+and prompting; every comparison here uses the coordinate modality with direct prompting
+(the other axes are analyzed in Appendix~\ref{app:axes}).
 
 \paragraph{Out-of-sample protocol.} Learned dynamics models are never scored on their training
 data. We generate a shared held-out set (a separate seed from the training trajectories) of
@@ -654,6 +654,25 @@ conditions alone.
 everything outside the \texttt{<answer>...</answer>} tags; the first \texttt{\{...\}} object
 is JSON-parsed and validated to contain length-$k$ \texttt{theta} and \texttt{omega} arrays.
 A response that fails any check is counted as unanswered and scored at $\pi/2$.
+
+\paragraph{Prompting, modality, and repeatability axes.}
+\label{app:axes}
+The released grid also varies prompting and input modality; from the saved records
+(trajectory-level paired bootstrap throughout): (i)~Chain-of-thought does not change the
+model ordering, and for the best-scoring LLM it is significantly \emph{worse} under
+reliability-adjusted scoring ($0.659$ vs.\ $0.538$\,rad; paired difference $+0.121$, CI
+$[+0.061,+0.183]$): reasoning consumes the token budget, unanswered cells rise from $6$ to
+$50$ of $360$, and failure accounting---not reasoning quality---drives the gap. For the
+other two models CoT is indistinguishable ($-0.038$, CI $[-0.102,+0.025]$; $-0.041$, CI
+$[-0.107,+0.021]$). (ii)~On the one-trajectory-per-cell modality grid, replacing
+coordinates with a rendered image never helps (significantly worse for one model, $+0.210$,
+CI $[+0.033,+0.392]$), adding an image to coordinates changes nothing measurable, and the
+model without vision support fails every image cell, which fixed-coverage scoring records
+at $\pi/2$: modality is an access variable, not a free axis. (iii)~A second independent
+temperature-$0$ run of one model's $216$-cell grid agrees bit-identically on $172/216$
+cells but shifts the aggregate by $+0.073$\,rad (CI $[+0.031,+0.120]$), so hosted
+temperature-$0$ inference is not exactly repeatable; this measured drift is why hosted
+results are reproducible only from the saved records.
 
 \section{Training and compute}
 All primary learned models use a $256$-wide, $3$-layer tanh MLP, Adam, and a cosine-annealed
