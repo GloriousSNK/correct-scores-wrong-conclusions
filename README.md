@@ -25,8 +25,8 @@ and four simple baselines.
 
 Two workshop submissions share this evidence base:
 
-- [`paper/manuscripts/ai4science.pdf`](paper/manuscripts/ai4science.pdf) — 8-page body,
-  *Verification in the Age of AI Scientists* (NeurIPS 2026)
+- [`paper/manuscripts/tae.pdf`](paper/manuscripts/tae.pdf) — 8-page body,
+  *TAE (Trust-AI-Eval): Can We Trust AI Evaluation?* (NeurIPS 2026)
 - [`paper/manuscripts/sim2science.pdf`](paper/manuscripts/sim2science.pdf) — 5-page body,
   *Sim2Science: ML with Imperfect Scientific Models* (NeurIPS 2026)
 
@@ -126,7 +126,7 @@ scripts/
   run_training_budget_study.py           # nested budget sweep
   build_anonymized_artifact.py           # reviewer artifact builder
 paper/manuscripts/
-  ai4science.tex, sim2science.tex, references.bib, compiled PDFs
+  tae.tex, sim2science.tex, references.bib, compiled PDFs
 results/
   per-cell records, summaries, trained weights, held-out specifications
 ```

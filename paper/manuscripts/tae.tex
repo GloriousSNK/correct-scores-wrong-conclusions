@@ -7,7 +7,7 @@
 % =====================================================================
 \documentclass{article}
 
-% Double-blind submission to the NeurIPS 2026 AI for Science workshop.
+% Double-blind submission to the NeurIPS 2026 TAE (Trust-AI-Eval) workshop.
 \IfFileExists{neurips_2026.sty}{%
   \usepackage[dblblindworkshop]{neurips_2026}%
 }{%
@@ -530,8 +530,9 @@ Error rises with $k$ for every model but the mixed-window Neural~ODE. The coarse
 models, so Table~\ref{tab:overall} is an average over $k$, not a within-$k$ ranking. The
 \texttt{changed\_hidden} regime is easiest for most models; equalizing access (withholding the
 hidden constants, supplying normal-regime priors) raises learned-model hidden errors to
-$0.71$--$1.19$ but does not remove the effect, since the low-gravity constants ($g{=}1.62$) make
-the motion slower and less divergent---a difficulty confound (\S\ref{sec:sysid}), not disclosure.
+$0.71$--$1.19$ but does not remove it: the low-gravity constants ($g{=}1.62$) make the motion
+slower and less divergent, so the residual advantage reflects difficulty, and the regime remains
+easiest even with access equalized (\S\ref{sec:sysid}).
 Resampling cells independently rather than whole trajectories changes no interval by more than
 ${\sim}0.03$\,rad, so within-trajectory dependence does not drive the widths.
 
