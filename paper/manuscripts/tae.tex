@@ -460,8 +460,9 @@ and $0.277\pm0.063$ at horizons $0.1$, $0.5$, and $1.0$\,s (mean $\pm$ standard 
 seeds), below both Chronos-2 modes at every horizon (multivariate $0.101\pm0.018$,
 $0.691\pm0.129$, $0.771\pm0.097$; univariate $0.126\pm0.027$, $0.700\pm0.102$,
 $0.732\pm0.085$). NVAR is close at $0.1$\,s ($0.012$) but drifts to $0.429$ by $1.0$\,s, a
-persistence baseline trails ($0.900$ at $1$~s), and divergent rollouts are scored at $\pi/2$ as
-on the pendulum (Table~\ref{tab:replication}). This is the reverse of the pendulum, where the
+persistence baseline trails ($0.900$ at $1$~s). Every method answered all Lorenz cells
+(Table~\ref{tab:replication}), so no failure imputation applies here and the pendulum's
+$\pi/2$ constant, specific to the wrapped-angle scale, plays no role. This is the reverse of the pendulum, where the
 trained models lost to trivial baselines: here a system-trained model beats the zero-shot
 foundation model. As on the pendulum the families see different inputs (SINDy the library, the
 Neural~ODE target-system training, Chronos a history window), so this is not an architecture
