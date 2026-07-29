@@ -32,7 +32,7 @@
 
 \title{Correct Scores, Wrong Scientific Conclusions:\\
 Auditing AI Forecasts of Chaotic Dynamics}
-\workshoptitle{Verification in the Age of AI Scientists}
+\workshoptitle{TAE (Trust-AI-Eval): Can We Trust AI Evaluation?}
 
 % Anonymized for double-blind review. At camera-ready, restore the TWO-author
 % list below. Do not reinstate the earlier three-author list: Shrithik Shahapure
@@ -62,22 +62,23 @@ from $0.09$--$0.63$\,rad on training trajectories to $0.97$--$1.14$\,rad on held
 trajectories, where linearized dynamics and nearest-neighbor lookup perform better. Retaining
 failed forecasts lowers the reported performance of models with incomplete coverage. An
 unmatched comparison says that hiding physical constants helps; a paired intervention instead
-finds a $+0.069$\,rad penalty. Two exact scale symmetries prove that the absolute constants are
+finds a small $+0.069$\,rad penalty. Two exact scale symmetries prove that the absolute constants are
 not identifiable from angle trajectories. Increasing the Neural~ODE training set improves
 error from $1.090$ to $0.861$\,rad but does not reach known-equation integration. The pendulum
 ordering also fails to transfer to Lorenz--63, where SINDy recovers the polynomial dynamics to
 numerical precision. On video-tracked hardware the roles invert: the RK4 model with published
 constants is itself imperfect, and its lead over simple baselines is gone within a second.
 These results show that a correct leaderboard can still support incorrect
-scientific conclusions: an unaudited score is not a verification. We release the prompts,
+scientific conclusions: an unaudited score does not earn trust. We release the prompts,
 outputs, checkpoints, seeds, and compute records needed to repeat the audit.
 \end{abstract}
 
 \section{Introduction}
-Scientific claims require more than low forecast error. As AI systems produce scientific
-results faster than they can be checked, the evaluation itself needs verifying: a result
-may depend on training trajectories, dropped failures, unmatched inputs, an unidentifiable
-target, or one favorable system. We study these failure modes directly. Given state $\mathbf{s}_t$, the task is to
+Scientific claims require more than low forecast error. A leaderboard states what was
+measured, not what inference it supports, and that gap is where trust in an evaluation is
+won or lost: a result may depend on training trajectories, dropped failures, unmatched
+inputs, an unidentifiable target, or one favorable system. We study the evaluation
+protocol itself, not only the models it ranks. Given state $\mathbf{s}_t$, the task is to
 predict $\mathbf{s}_{t+T}$. The $k$-link pendulum is integrable at $k{=}1$ and chaotic for
 $k{\ge}2$, has high-precision ground truth, and permits controlled changes to physical
 metadata. Lorenz--63 provides a second system with a different observation model and
@@ -352,8 +353,9 @@ near constant velocity.
 \centering\small\renewcommand{\arraystretch}{0.90}
 \caption{Out-of-sample cross-family comparison on the shared held-out set ($360$ cells, horizons
 $\{1,10\}$\,s). Reliability-adjusted mean angle error (rad): unanswered or missing cells
-scored at $\pi/2$; $95\%$ bootstrap CI. RK4 generates the data and is included
-as a numerical reference. Configurations first evaluated in this work are marked $\dagger$;
+scored at $\pi/2$; $95\%$ bootstrap CI. Inputs differ by family (Table~\ref{tab:inputs}); the
+ranking is conditional on them, this budget, and this system. RK4 generates the data and is
+included as a numerical reference. Configurations first evaluated in this work are marked $\dagger$;
 simple baselines are marked $\ddagger$.}\label{tab:overall}
 \begin{tabular}{rlcccl}
 \toprule
@@ -384,9 +386,10 @@ simple baselines are marked $\ddagger$.}\label{tab:overall}
 
 \paragraph{Effect of missing predictions.} \texttt{grok} answers $82\%$ of the grid and
 \texttt{lnn} $94\%$: their ranks fall when missing cells receive $\pi/2$, and a mean over
-answered cells alone would flatter both. Under the strict $\pi$ bound only these two move
-(\texttt{grok} eight places down, the LNN still last), so the ordering is not an artifact of
-the imputation constant.
+answered cells alone would flatter both. Under the strict $\pi$ bound only these two move:
+the LNN stays last, while \texttt{grok} falls eight places. The cross-family ordering is
+stable to the imputation constant; the rank of a model with incomplete coverage is
+not---the reason to score coverage rather than report it separately.
 
 \subsection{Matched disclosure and identifiability}
 \label{sec:sysid}
@@ -561,11 +564,9 @@ $0.543$ (95\% CI $[0.498,0.589]$) versus $0.549$ ($[0.505,0.593]$). No effect re
 Holm correction, so the larger study rejects the apparent per-$k$ trend in the primary grid.
 
 \section{Discussion}
-The audit changes five conclusions supported by the raw comparison
-(Table~\ref{tab:audit-summary}); the changes are to the scientific claim, not to
-presentation.
-
-More data improves the Neural~ODE from $1.090$ to $0.861$\,rad without closing the gap to
+The audit changes five conclusions the raw comparison supports
+(Table~\ref{tab:audit-summary}), and the changes are to the scientific claim, not to
+presentation. More data improves the Neural~ODE from $1.090$ to $0.861$\,rad without closing the gap to
 known-equation integration; HNN improvement plateaus. On Lorenz, SINDy is nearly exact because
 the vector field lies in its library, while a system-trained Neural~ODE beats zero-shot
 Chronos-2. Performance therefore depends on system, observations, hypothesis class, data,
@@ -574,11 +575,10 @@ and access---conditions a scalar leaderboard does not encode.
 \section{Limitations}
 \label{sec:limitations}
 The full LLM grid uses one held-out seed (the local replication adds a second, with fewer
-trajectories per cell); the budget study uses three initializations and two held-out seeds;
-inputs differ by method (Table~\ref{tab:inputs}). The Lorenz test, five trajectories in each
-of five held-out seeds, excludes API LLMs, HNN, and LNN; the hardware check has three trials
-of one apparatus with filtered velocities; SINDy needs the true polynomial degree in its
-library. Predictions are single endpoint states, conservation tests cover only the undamped
+trajectories per cell); the budget study uses three initializations and two seeds;
+inputs differ by method (Table~\ref{tab:inputs}). The Lorenz test excludes API LLMs, HNN,
+and LNN; the hardware check has three trials of one apparatus with filtered velocities;
+SINDy needs the true polynomial degree in its library. Predictions are single endpoint states, conservation tests cover only the undamped
 regime, and we cannot rule out pendulum-like trajectories in the foundation models' training
 corpora.
 
@@ -586,9 +586,9 @@ corpora.
 Correct scores can support wrong scientific conclusions: generalization, failure
 accounting, matched disclosure, identifiability, and cross-system transfer each change a
 claim the raw leaderboard supports, so benchmarks should report those checks, budgets, and
-access with the result. The synthetic systems give every check exact ground truth; the
-hardware check runs the audit where the reference model itself is imperfect---the regime any
-surrogate verifier of real experiments must operate in.
+access with the result. The synthetic systems give every check exact ground truth, which is
+what validates the audit itself; the hardware check then runs it where the reference model
+is imperfect---the regime real evaluations operate in.
 
 % Camera-ready only (deanonymizing; keep commented for double-blind review):
 %
