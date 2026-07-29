@@ -303,9 +303,10 @@ penalty.
 
 \paragraph{Lorenz replication.} A secondary Lorenz--63 test compares numerical references,
 persistence, SINDy, NVAR, a Neural~ODE trained on $20$ single-seed trajectories, and zero-shot
-Chronos-2 on five five-trajectory held-out seeds. We report training-normalized coordinate MAE at
-$\{0.1,0.5,1.0\}$\,s (full configuration in Appendix~C). HNN and LNN are omitted:
-Lorenz--63 is dissipative and non-Hamiltonian.
+Chronos-2 on five five-trajectory held-out seeds at $\{0.1,0.5,1.0\}$\,s (full configuration in
+Appendix~C). The metric is coordinate MAE normalized by each Cartesian coordinate's training
+standard deviation, averaged over coordinates and horizon (an error of $1$ is one training
+standard deviation). HNN and LNN are omitted: Lorenz--63 is dissipative and non-Hamiltonian.
 
 \section{Results}
 \subsection{Failure accounting and held-out generalization}
@@ -345,7 +346,7 @@ majority of NVAR's score and a substantial part of SINDy's is imputation rather 
 error, so these entries rank rollout stability together with accuracy.
 
 \begin{table}[tbp]
-\centering\footnotesize\renewcommand{\arraystretch}{0.82}
+\centering\footnotesize\renewcommand{\arraystretch}{0.74}
 \caption{Out-of-sample cross-family comparison on the shared held-out set ($360$ cells, horizons
 $\{1,10\}$\,s). Reliability-adjusted mean angle error (rad): unanswered or missing cells
 scored at $\pi/2$; $95\%$ bootstrap CI. Inputs differ by family (Table~\ref{tab:inputs}); the
@@ -513,15 +514,11 @@ toggle.
 \subsection{Diagnostics}
 \label{sec:behavior}
 \paragraph{Behavior by horizon.}
-Out-of-sample error by horizon appears in Table~\ref{tab:horizon} (Appendix~E). At $1$\,s the ordering
-follows the main comparison: the integrators are near-exact, \texttt{kimi} ($0.457$) has the
-lowest black-box error, and the learned models are at $0.86$--$1.25$. At $10$\,s all models
-are in the chaotic regime; \texttt{kimi} ($0.619$) stays the lowest black-box method and the
-learned models reach $1.09$--$1.46$, but within-family ranks shift (\texttt{deepseek} falls
-from $0.996$ to $0.909$ while the Neural~ODE rises from $0.892$ to $1.328$), so horizon-specific
-ranks are not read from the pooled score. Figure~\ref{fig:errorgrowth} shows the growth curves:
-the numerical integrators stay low through $1$\,s while every black-box family climbs toward the
-chaotic noise floor, and the $\{1,10\}$\,s window is where the families remain separable.
+Error by horizon appears in Table~\ref{tab:horizon} (Appendix~E) and the growth curves in
+Figure~\ref{fig:errorgrowth}. \texttt{kimi} stays the lowest black-box method at both $1$ and
+$10$\,s, but within-family ranks shift (\texttt{deepseek} falls from $0.996$ to $0.909$ while
+the Neural~ODE rises from $0.892$ to $1.328$), so horizon-specific ranks are not read from the
+pooled score; the $\{1,10\}$\,s window is where the families remain separable.
 
 % (Table tab:horizon relocated to Appendix D)
 
@@ -560,29 +557,23 @@ integrators: the lowest-drift learned model is $0.779$ against $0.066$ for the s
 integrator. Rolling the HNN out with a symplectic integrator changes its drift only from
 $2.065$ to $2.036$, so the integrator does not account for it; the fault is the learned
 Hamiltonian. The LNN's $4.038$ is over the $27\%$ of bounded rollouts and is not comparable to
-the fully-bounded rows.
-
-\paragraph{Multivariate time-series check.}
-\label{sec:multivariate}
-On $720$ paired samples, Chronos-2 multivariate and univariate errors are indistinguishable
-($0.543$ versus $0.549$; no effect survives Holm correction), so the small per-$k$ multivariate
-advantage in Table~\ref{tab:perk} is not evidence of joint-channel benefit.
+the fully-bounded rows. Finally, Chronos-2's multivariate and univariate modes are
+indistinguishable on $720$ paired samples ($0.543$ vs.\ $0.549$, no effect after Holm), so the
+small per-$k$ multivariate edge in Table~\ref{tab:perk} is not a joint-channel benefit.
 
 \section{Discussion}
-More data improves the Neural~ODE from $1.090$ to $0.861$\,rad without closing the gap to
-known-equation integration, and HNN improvement plateaus. Performance therefore depends on
-system, observations, hypothesis class, data, and access, none of which a scalar leaderboard
-encodes.
+More data does not close the Neural~ODE's gap to known-equation integration and the HNN gain
+plateaus, so performance depends on system, observations, hypothesis class, data, and access,
+none of which a scalar leaderboard encodes.
 
 \section{Limitations}
 \label{sec:limitations}
-The full LLM grid uses one held-out seed (the replication adds a second with fewer trajectories
-per cell); the budget study uses three initializations and two seeds; the Lorenz test excludes
-API LLMs, HNN, and LNN; the hardware check has three trials of one apparatus with filtered
-velocities; SINDy needs the true polynomial degree. Predictions are single endpoint states,
-conservation tests cover only the undamped regime, and we cannot rule out pendulum-like
-trajectories in the foundation models' corpora. Intervals are marginal, not simultaneous, and
-incomplete-coverage scores are conditional on the $\pi/2$ imputation.
+The full LLM grid uses one held-out seed (the replication adds a second); the budget study uses
+three initializations and two seeds; the Lorenz test excludes API LLMs, HNN, and LNN; the
+hardware check has three trials of one apparatus; and SINDy needs the true polynomial degree.
+Predictions are single endpoint states, conservation tests cover only the undamped regime, and
+foundation-model corpora may contain pendulum-like trajectories. Intervals are marginal, not
+simultaneous, and incomplete-coverage scores are conditional on the $\pi/2$ imputation.
 
 \section{Conclusion}
 Generalization, failure accounting, matched disclosure, identifiability, and cross-system
@@ -719,7 +710,9 @@ the API is a new evaluation rather than a reproduction. Invalid cells are scored
 \section{Seed and system replication}
 The Lorenz--63 test uses $(\sigma,\rho,\beta)=(10,28,8/3)$, RK4 ground truth at $\Delta t{=}0.01$\,s, a 5~s
 context, one fixed training seed, and five fixed held-out seeds (all recorded in the released
-configuration). Each held-out seed contains five trajectories, giving $25$ held-out
+configuration). Here RK4 integrates at the same step that generates the data, so its normalized
+MAE is $0.000$ by construction; unlike the coarser-step pendulum reference it carries no
+information and is listed only to anchor the scale. Each held-out seed contains five trajectories, giving $25$ held-out
 trajectories in total. The Neural~ODE is a two-hidden-layer, width-$128$ tanh network trained
 for $300$ epochs by analytic derivative matching. SINDy uses a degree-two polynomial library
 with STLSQ, fit to analytic derivatives at the sampled training states; the refit selects the
