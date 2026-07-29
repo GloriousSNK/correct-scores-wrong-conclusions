@@ -75,10 +75,9 @@ outputs, checkpoints, seeds, and compute records needed to repeat the audit.
 
 \section{Introduction}
 Scientific claims require more than low forecast error. A leaderboard states what was
-measured, not what inference it supports, and that gap is where trust in an evaluation is
-won or lost: a result may depend on training trajectories, dropped failures, unmatched
-inputs, an unidentifiable target, or one favorable system. We study the evaluation
-protocol itself, not only the models it ranks. Given state $\mathbf{s}_t$, the task is to
+measured, not what inference it supports: a result may depend on training trajectories,
+dropped failures, unmatched inputs, an unidentifiable target, or one favorable system. We
+study the evaluation protocol itself, not only the models it ranks. Given state $\mathbf{s}_t$, the task is to
 predict $\mathbf{s}_{t+T}$. The $k$-link pendulum is integrable at $k{=}1$ and chaotic for
 $k{\ge}2$, has high-precision ground truth, and permits controlled changes to physical
 metadata. Lorenz--63 provides a second system with a different observation model and
@@ -94,10 +93,10 @@ taxonomy: each tests one inference step between a score and a conclusion (sample
 answered cells to full task, correlation to attribution, accuracy to parameter recovery, one
 system to a family claim), and claims we do not make would need other checks, such as
 calibration for probabilistic forecasts.
-Table~\ref{tab:audit-summary} states the conclusion before and after each test. The central
-result is empirical and direct: all five tests alter or reject a conclusion supported by the
-unaudited comparison, and these are conclusions the field draws: zero-shot forecasters are
-routinely scored without failure accounting or matched controls
+Table~\ref{tab:audit-summary} states the conclusion before and after each test. Empirically,
+all five tests alter or reject a conclusion supported by the unaudited comparison, and at least
+two of them concern conclusions drawn in practice: zero-shot forecasters are routinely scored
+without failure accounting or matched controls
 \citep{gruver2023llmtime,zhang2025zeroshotchaos}.
 
 \begin{table}[tbp]
@@ -289,8 +288,6 @@ two held-out seeds.
 
 \paragraph{Integrators.} Euler, RK4, and St\"ormer--Verlet (symplectic) at $\Delta
 t{=}0.01$\,s using the exact equations of motion; their error is from discretization alone.
-RK4 generates the data and is included as a numerical reference, not an independent
-competitor.
 
 \paragraph{Baselines.} Four reference baselines use the same grid: persistence
 ($\theta_T{=}\theta_0$), constant velocity ($\theta_T{=}\theta_0{+}\omega_0T$), a
@@ -318,7 +315,7 @@ Every model is evaluated on that grid. The Answered column in Table~\ref{tab:ove
 fraction of cells with valid predictions.
 Confidence intervals are $95\%$ percentile bootstrap intervals from $B{=}10^4$ resamples of
 whole held-out trajectories (both horizon cells together), paired across models on a common
-resample; they are marginal per model, not simultaneous over the $18$ rows, and for LLMs
+resample; they are marginal per model, not simultaneous over the $19$ rows, and for LLMs
 exclude per-call sampling variation.
 
 Table~\ref{tab:overall} ranks the models on the pendulum under the access conditions in
@@ -326,14 +323,16 @@ Table~\ref{tab:overall} ranks the models on the pendulum under the access condit
 system; Section~\ref{sec:lorenz} tests whether it transfers. The numerical integrators sit at the top as
 references (RK4 $0.059$ at a finer step, symplectic $0.205$, Euler $0.405$),
 and every learned-dynamics model lands closer to the $\pi/2$ random baseline than to the
-RK4 and symplectic references. The lowest-error black-box entry is the frontier LLM \texttt{kimi}
-($0.538$\,rad, $99\%$ answered), and its marginal interval excludes the nearest baseline's.
+RK4 and symplectic references. The lowest-error black-box entry is \texttt{kimi}
+($0.538$\,rad, $98\%$ answered), whose interval is disjoint from the strongest baseline's
+(nearest-neighbor, $0.725$).
 That is a statement about one recorded June~2026 deployment under these evaluation
 conditions, not about model families; the Lorenz test rejects the family reading.
 
-Under the equalized hidden-regime run, nearest-neighbor lookup ($0.725$) and the
-linearized pendulum ($0.855$) beat every learned model, and persistence ($1.004$) beats all
-but HNN-rollout ($0.972$), though those two intervals overlap. The stable learned models
+Under the equalized hidden-regime run, nearest-neighbor lookup ($0.725$) beats every learned
+model with a disjoint interval; the linearized pendulum ($0.855$) and persistence ($1.004$) sit
+above every learned model but HNN-rollout ($0.972$) on point estimates, with marginal intervals
+that overlap near the boundary. The stable learned models
 score $0.09$--$0.63$\,rad on their training trajectories against $0.97$--$1.14$ held out
 (Table~\ref{tab:insample}), a $1.7$--$11\times$ gap widest for the in-sample winner,
 the mixed-window Neural~ODE.
@@ -382,7 +381,7 @@ simple baselines are marked $\ddagger$.}\label{tab:overall}
 
 \paragraph{Effect of missing predictions.} \texttt{grok} answers $82\%$ of the grid and
 \texttt{lnn} $94\%$: their ranks fall when missing cells receive $\pi/2$. On answered cells
-alone \texttt{grok} scores $0.729$ rather than $0.881$, above four learned models; fixed
+alone \texttt{grok} scores $0.729$ rather than $0.881$, ahead of every learned model; fixed
 coverage keeps its abstentions in the score. Under the strict $\pi$ bound the LNN stays last
 and \texttt{grok} falls eight places, while full-coverage models are unchanged. The order among
 full-coverage models is invariant to the imputation constant; the rank of an incomplete-coverage
@@ -437,8 +436,9 @@ With three training initializations and the two held-out seeds, Neural~ODE error
 from $1.090$ at one trajectory per cell to $0.968$ at five and $0.861$ at twenty
 (Table~\ref{tab:budget}). HNN error on the normal regime falls from $1.269$ to $0.974$ and
 then remains $0.981$. The HNN and Neural~ODE rows cover different regimes and are not an
-architecture comparison. More data helps the Neural~ODE monotonically, the HNN gains plateau
-by $15$ trajectories, and neither closes the gap to known-equation integration.
+architecture comparison. More data lowers Neural~ODE error monotonically in point estimate
+(the $1\!\to\!5$ step is within the intervals, the $1\!\to\!20$ change is not); the HNN gain
+plateaus by $15$ trajectories, and neither closes the gap to known-equation integration.
 
 \subsection{Cross-system test: Lorenz--63}
 \label{sec:lorenz}
@@ -472,7 +472,7 @@ Neural~ODE target-system training, Chronos a history window), so this is not an 
 race; the cross-system result rejects the pendulum ranking as a general ordering of model
 families.
 
-The reversal does not rest on a favorable seed. The Neural~ODE beats both Chronos-2 modes in
+The reversal does not rest on a favorable held-out seed (the training seed is fixed; \S\ref{sec:limitations}). The Neural~ODE beats both Chronos-2 modes in
 every one of the $15$ seed-by-horizon comparisons, and SINDy stays below $1.7\times10^{-5}$
 in every cell. The identifiability half of the contrast is not a sampling claim: the
 pendulum symmetries are exact and verified to below $10^{-13}$, and Lorenz--63 lies in
@@ -518,7 +518,7 @@ follows the main comparison: the integrators are near-exact, \texttt{kimi} ($0.4
 lowest black-box error, and the learned models are at $0.86$--$1.25$. At $10$\,s all models
 are in the chaotic regime; \texttt{kimi} ($0.619$) stays the lowest black-box method and the
 learned models reach $1.09$--$1.46$, but within-family ranks shift (\texttt{deepseek} falls
-from $0.996$ to $0.909$ while the Neural~ODE rises from $0.793$ to $1.264$), so horizon-specific
+from $0.996$ to $0.909$ while the Neural~ODE rises from $0.892$ to $1.328$), so horizon-specific
 ranks are not read from the pooled score. Figure~\ref{fig:errorgrowth} shows the growth curves:
 the numerical integrators stay low through $1$\,s while every black-box family climbs toward the
 chaotic noise floor, and the $\{1,10\}$\,s window is where the families remain separable.
@@ -530,8 +530,9 @@ chaotic noise floor, and the $\{1,10\}$\,s window is where the families remain s
 Tables~\ref{tab:perk} and~\ref{tab:perregime} (Appendix~D) report error by link count and regime.
 Error rises with $k$ for every model but the mixed-window Neural~ODE. The coarse ordering
 (numerical below black-box below learned) holds at $k{=}2,3$ only: at $k{=}1$ \texttt{euler}
-($0.271$) falls among the Chronos modes and \texttt{deepseek} ($0.872$) drops below four learned
-models, so Table~\ref{tab:overall} is an average over $k$, not a within-$k$ ranking. The
+($0.271$) falls among the Chronos modes and \texttt{deepseek} ($0.872$) drops into the learned
+band, so Table~\ref{tab:overall} averages over $k$ and should not be read as a within-$k$
+ranking. The
 \texttt{changed\_hidden} regime is easiest for most models; equalizing access (withholding the
 hidden constants, supplying normal-regime priors) raises learned-model hidden errors to
 $0.71$--$1.19$ but does not remove it: the low-gravity constants ($g{=}1.62$) make the motion
@@ -585,9 +586,9 @@ incomplete-coverage scores are conditional on the $\pi/2$ imputation.
 
 \section{Conclusion}
 Generalization, failure accounting, matched disclosure, identifiability, and cross-system
-transfer each change a claim the raw leaderboard supports, so benchmarks should report these
-checks, budgets, and access with the result. Exact ground truth on the synthetic systems
-attributes each change to the check, not to label error.
+transfer each change a claim the raw leaderboard supports, so benchmarks should report them
+alongside training budgets and information access. Exact ground truth isolates each change to
+the check itself.
 
 % Camera-ready only (deanonymizing; keep commented for double-blind review):
 %
