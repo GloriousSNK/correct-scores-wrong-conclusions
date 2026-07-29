@@ -386,7 +386,10 @@ alone \texttt{grok} scores $0.729$ rather than $0.881$, above four learned model
 coverage keeps its abstentions in the score. Under the strict $\pi$ bound the LNN stays last
 and \texttt{grok} falls eight places, while full-coverage models are unchanged. The order among
 full-coverage models is invariant to the imputation constant; the rank of an incomplete-coverage
-model is not, which is why coverage enters the score.
+model is not, which is why coverage enters the score. A prompting change shows the same
+mechanism: chain-of-thought leaves the ordering unchanged but is worse for the best LLM
+($+0.121$\,rad, CI $[+0.061,+0.183]$) because its unanswered cells rise from $6$ to $50$,
+moving the score through coverage, not accuracy (Appendix~\ref{app:axes}).
 
 \subsection{Matched disclosure and identifiability}
 \label{sec:sysid}
@@ -550,23 +553,19 @@ numerically unstable and generalizes poorly out of sample.
 \paragraph{Physical-fidelity check.}
 \label{sec:energy}
 Hamiltonian and Lagrangian networks target structure preservation, so we evaluate energy
-drift on the undamped (\texttt{normal}) regime, where true energy is constant. Table~\ref{tab:energy}
-reports mean absolute drift over $10$\,s, normalized by $E^{*}{=}g\sum_i m_i L_i$, and the
-fraction of bounded rollouts. The learned models do not match numerical integrators on this
-axis: the lowest-drift learned model is $0.779$, compared with $0.066$ for the symplectic
-integrator and $0.494$ for Euler. Rolling the HNN out with a symplectic integrator changes
-its drift from $2.065$ to $2.036$, so the integrator does not account for it. At the
-derivative-matching objective, HNN and Neural~ODE drift are within the resolution of this
-check ($4.27$ vs.\ $4.35$, point estimates); the LNN's $4.038$ is computed over the $27\%$ of
-rollouts that stayed bounded and is not comparable to the fully-bounded rows. These results use the
-nine-trajectory budget of the main comparison.
+drift on the undamped regime, where true energy is constant (Table~\ref{tab:energy}, drift over
+$10$\,s normalized by $E^{*}{=}g\sum_i m_i L_i$). The learned models do not match numerical
+integrators: the lowest-drift learned model is $0.779$ against $0.066$ for the symplectic
+integrator. Rolling the HNN out with a symplectic integrator changes its drift only from
+$2.065$ to $2.036$, so the integrator does not account for it; the fault is the learned
+Hamiltonian. The LNN's $4.038$ is over the $27\%$ of bounded rollouts and is not comparable to
+the fully-bounded rows.
 
 \paragraph{Multivariate time-series check.}
 \label{sec:multivariate}
 On $720$ paired samples, Chronos-2 multivariate and univariate errors are indistinguishable
-($0.543$, 95\% CI $[0.498,0.589]$, versus $0.549$, $[0.505,0.593]$); no effect survives Holm
-correction, so the larger study gives no evidence for the small multivariate advantage visible
-per $k$ in Table~\ref{tab:perk}.
+($0.543$ versus $0.549$; no effect survives Holm correction), so the small per-$k$ multivariate
+advantage in Table~\ref{tab:perk} is not evidence of joint-channel benefit.
 
 \section{Discussion}
 More data improves the Neural~ODE from $1.090$ to $0.861$\,rad without closing the gap to
@@ -658,13 +657,11 @@ A response that fails any check is counted as unanswered and scored at $\pi/2$.
 \paragraph{Prompting, modality, and repeatability axes.}
 \label{app:axes}
 The released grid also varies prompting and input modality; from the saved records
-(trajectory-level paired bootstrap throughout): (i)~Chain-of-thought does not change the
-model ordering, and for the best-scoring LLM it is significantly \emph{worse} under
-reliability-adjusted scoring ($0.659$ vs.\ $0.538$\,rad; paired difference $+0.121$, CI
-$[+0.061,+0.183]$): reasoning consumes the token budget, unanswered cells rise from $6$ to
-$50$ of $360$, and failure accounting---not reasoning quality---drives the gap. For the
-other two models CoT is indistinguishable ($-0.038$, CI $[-0.102,+0.025]$; $-0.041$, CI
-$[-0.107,+0.021]$). (ii)~On the one-trajectory-per-cell modality grid, replacing
+(trajectory-level paired bootstrap throughout): (i)~The chain-of-thought result is in
+\S\ref{sec:reliability}; for the best-scoring LLM it costs $0.659$ vs.\ $0.538$\,rad through
+coverage, while for the other two models it is indistinguishable ($-0.038$, CI
+$[-0.102,+0.025]$; $-0.041$, CI $[-0.107,+0.021]$). (ii)~On the one-trajectory-per-cell
+modality grid, replacing
 coordinates with a rendered image never helps (significantly worse for one model, $+0.210$,
 CI $[+0.033,+0.392]$), adding an image to coordinates changes nothing measurable, and the
 model without vision support fails every image cell, which fixed-coverage scoring records
