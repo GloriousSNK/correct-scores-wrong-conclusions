@@ -1,34 +1,25 @@
 # Manuscript Build Notes
 
-Current manuscript:
+Active submission: `tae.tex` — NeurIPS 2026 TAE (Trust-AI-Eval) workshop.
 
-- `main.tex`
+Files:
+
+- `tae.tex` — the manuscript
 - `references.bib`
 - `neurips_2026.sty`
-- `ForecastingChaosAcrossModelFamilies.pdf`
 
-Build command:
+Build:
 
 ```bash
-pdflatex -interaction=nonstopmode main.tex
-bibtex main
-pdflatex -interaction=nonstopmode main.tex
-pdflatex -interaction=nonstopmode main.tex
+pdflatex -interaction=nonstopmode tae.tex
+bibtex tae
+pdflatex -interaction=nonstopmode tae.tex
+pdflatex -interaction=nonstopmode tae.tex
 ```
 
-The current checked PDF was compiled locally with MiKTeX and the NeurIPS 2026 style file.
-It is currently set in preprint mode so author names are visible. For an anonymous or
-workshop submission, switch the `\usepackage[preprint]{neurips_2026}` line in `main.tex`
-to the target workshop option and set `\workshoptitle{...}` if required by that workshop.
+Compiled locally with MiKTeX. The source uses `\usepackage[dblblindworkshop]{neurips_2026}`
+and sets `\workshoptitle{TAE (Trust-AI-Eval): Can We Trust AI Evaluation?}` for double-blind
+submission; the author block stays commented until camera-ready, when the option becomes
+`[dblblindworkshop, final]`. Body is eight pages, references and appendices unlimited.
 
-The manuscript includes:
-
-- main leaderboard
-- input-information table
-- known-physics vs black-box framing
-- reliability-adjusted scoring
-- hidden-constant matched control
-- Chronos history-conditioning clarification
-- HNN/LNN energy-conservation analysis
-- NeurIPS paper checklist
-- appendix prompt templates and supplemental result tables
+`sim2science.tex` is a separate, non-submitted variant kept for reference.

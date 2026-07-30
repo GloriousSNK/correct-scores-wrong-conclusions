@@ -23,7 +23,7 @@ and four simple baselines.
 
 ## Manuscripts
 
-Two workshop submissions share this evidence base:
+The workshop submission built on this evidence base:
 
 - [`paper/manuscripts/tae.pdf`](paper/manuscripts/tae.pdf) — 8-page body,
   *TAE (Trust-AI-Eval): Can We Trust AI Evaluation?* (NeurIPS 2026)
@@ -31,8 +31,6 @@ Two workshop submissions share this evidence base:
 Both are anonymized for double-blind review; author information stays in LaTeX comments
 until camera-ready. **Keep this repository private while the submissions are under
 review** — it is otherwise a deanonymization path from the paper text.
-`ForecastingChaosAcrossModelFamilies.pdf` and `main.tex` are the superseded single-paper
-version, retained for history.
 
 ## Leaderboard
 
