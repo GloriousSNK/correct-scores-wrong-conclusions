@@ -43,3 +43,6 @@ paper/manuscripts/generated/
 # Non-submitted manuscript variant kept locally, not in the repo
 paper/manuscripts/sim2science.tex
 paper/manuscripts/sim2science.pdf
+
+# Internal working notes kept locally, not in the repo
+Historical log/
