@@ -21,5 +21,3 @@ Compiled locally with MiKTeX. The source uses `\usepackage[dblblindworkshop]{neu
 and sets `\workshoptitle{TAE (Trust-AI-Eval): Can We Trust AI Evaluation?}` for double-blind
 submission; the author block stays commented until camera-ready, when the option becomes
 `[dblblindworkshop, final]`. Body is eight pages, references and appendices unlimited.
-
-`sim2science.tex` is a separate, non-submitted variant kept for reference.

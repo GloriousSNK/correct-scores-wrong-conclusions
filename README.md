@@ -122,7 +122,7 @@ scripts/
   run_training_budget_study.py           # nested budget sweep
   build_anonymized_artifact.py           # reviewer artifact builder
 paper/manuscripts/
-  tae.tex, sim2science.tex, references.bib, compiled PDFs
+  tae.tex, references.bib, tae.pdf
 results/
   per-cell records, summaries, trained weights, held-out specifications
 ```

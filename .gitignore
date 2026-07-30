@@ -39,3 +39,7 @@ _incoming_mac/
 # --- Generated LaTeX tables and logs (regenerate from scripts/build) ---
 *.log
 paper/manuscripts/generated/
+
+# Non-submitted manuscript variant kept locally, not in the repo
+paper/manuscripts/sim2science.tex
+paper/manuscripts/sim2science.pdf
