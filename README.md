@@ -27,8 +27,6 @@ Two workshop submissions share this evidence base:
 
 - [`paper/manuscripts/tae.pdf`](paper/manuscripts/tae.pdf) — 8-page body,
   *TAE (Trust-AI-Eval): Can We Trust AI Evaluation?* (NeurIPS 2026)
-- [`paper/manuscripts/sim2science.pdf`](paper/manuscripts/sim2science.pdf) — 5-page body,
-  *Sim2Science: ML with Imperfect Scientific Models* (NeurIPS 2026)
 
 Both are anonymized for double-blind review; author information stays in LaTeX comments
 until camera-ready. **Keep this repository private while the submissions are under
