@@ -1,4 +1,4 @@
-# Correct Scores, Wrong Scientific Conclusions
+# Correct Scores, Wrong Conclusions
 
 A claim audit for AI forecasts of chaotic dynamics. Given the state of a system at time
 $t$, the task is to predict the state at $t+T$; the question this repository is built to
@@ -186,8 +186,8 @@ evaluations and helped run those API evaluations.
 
 ```bibtex
 @inproceedings{kandi2026correctscores,
-  title  = {Correct Scores, Wrong Scientific Conclusions:
-            Auditing AI Forecasts of Chaotic Dynamics},
+  title  = {Correct Scores, Wrong Conclusions:
+            Auditing Forecasting Benchmarks on Chaotic Dynamics},
   author = {Kandi, Sriman Narayan and Srinivasan, Trishant},
   year   = {2026}
 }
