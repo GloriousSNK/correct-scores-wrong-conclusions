@@ -173,7 +173,7 @@ any hit, so the output is safe to attach to a double-blind submission.
 
 ## Authors
 
-Sriman Narayan Kandi, Trishant Srinivasan.
+Sriman Narayan Kandi, Trisanth Srinivasan.
 
 Shrithik Shahapure provided compute access for the Azure AI Foundry large language model
 evaluations and helped run those API evaluations.
@@ -184,7 +184,7 @@ evaluations and helped run those API evaluations.
 @inproceedings{kandi2026correctscores,
   title  = {Correct Scores, Wrong Conclusions:
             Auditing Forecasting Benchmarks on Chaotic Dynamics},
-  author = {Kandi, Sriman Narayan and Srinivasan, Trishant},
+  author = {Kandi, Sriman Narayan and Srinivasan, Trisanth},
   year   = {2026}
 }
 ```
