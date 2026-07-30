@@ -132,7 +132,7 @@ artifact of how the mean is computed. Kimi produced a valid prediction on only *
 of its 216 cells; the leaderboard error averages over just those answered cells and
 ignores the 68.5% it refused, timed out on, or returned unparseably.
 
-Crucially, the success rate is **roughly uniform across horizons** (33% / 30% / 33% /
+The success rate is also **roughly uniform across horizons** (33% / 30% / 33% /
 30% at 0.01 / 1 / 10 / 60 s), so it is *not* that Kimi only answers easy cells — it
 answers about a third of the time everywhere, and when it does it is genuinely accurate
 (median 0.033). It is "brilliant but unreliable," exactly as in Round 1.
