@@ -2,7 +2,7 @@
 
 A claim audit for AI forecasts of chaotic dynamics. Given the state of a system at time
 $t$, the task is to predict the state at $t+T$; the question this repository is built to
-answer is not who scores best, but **which scientific claims a score actually supports**.
+answer is what a leaderboard score actually licenses you to conclude.
 
 Five conditions connect a leaderboard number to a claim. Each one changes a conclusion
 the raw comparison invites:
@@ -30,7 +30,7 @@ The workshop submission built on this evidence base:
 
 Both are anonymized for double-blind review; author information stays in LaTeX comments
 until camera-ready. **Keep this repository private while the submissions are under
-review** — it is otherwise a deanonymization path from the paper text.
+review**: it is otherwise a deanonymization path from the paper text.
 
 ## Leaderboard
 
@@ -67,7 +67,7 @@ and the linearized pendulum, and all but one sit below persistence.
 ## Key Findings
 
 - **Generalization.** The six stable learned models score $0.09$–$0.63$ rad on their own
-  training trajectories against $0.97$–$1.14$ held out — a $1.7$–$11\times$ gap, widest
+  training trajectories against $0.97$–$1.14$ held out, a $1.7$–$11\times$ gap, widest
   for the model that looks best in sample (mixed-window Neural ODE).
 - **Failure accounting.** Missing, refused, and invalid cells are scored, not dropped.
   Under a strict $\pi$ bound only one model moves materially, so the ordering is not an
@@ -77,7 +77,7 @@ and the linearized pendulum, and all but one sit below persistence.
   cells, Wilcoxon + Holm) finds a $+0.069$ rad penalty. The naive result was a difficulty
   confound.
 - **Identifiability.** Two exact scale symmetries, verified numerically below $10^{-13}$,
-  make the absolute constants unrecoverable from angle trajectories — so "the model
+  make the absolute constants unrecoverable from angle trajectories, so "the model
   failed to recover $g$" is a category error, not a performance result. On Lorenz-63 the
   check inverts and SINDy recovers $(10, 28, 8/3)$ to $2.2\times10^{-13}$.
 - **Transfer.** The pendulum ordering fails on Lorenz-63 across five held-out seeds: a
@@ -92,7 +92,7 @@ and the linearized pendulum, and all but one sit below persistence.
   ordering and significantly *hurts* the best LLM ($+0.121$ rad), because reasoning
   consumes the token budget and unanswered cells rise from 6 to 50 of 360. Rendered
   images never beat coordinates. A second temperature-0 run agrees bit-identically on
-  only $172/216$ cells and shifts the aggregate $+0.073$ rad — hosted inference is not
+  only $172/216$ cells and shifts the aggregate $+0.073$ rad; hosted inference is not
   exactly repeatable, which is why hosted results are reproduced from saved records
   rather than by re-calling the API.
 
@@ -135,7 +135,7 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-These run from committed records — no API calls, no GPU:
+These run from committed records, with no API calls, no GPU:
 
 ```bash
 python scripts/analyze_identifiability.py

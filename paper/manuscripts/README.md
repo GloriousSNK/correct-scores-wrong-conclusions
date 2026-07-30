@@ -1,6 +1,6 @@
 # Manuscript Build Notes
 
-Active submission: `tae.tex` — NeurIPS 2026 TAE (Trust-AI-Eval) workshop.
+Active submission: `tae.tex`, for the NeurIPS 2026 TAE (Trust-AI-Eval) workshop.
 
 Files:
 
