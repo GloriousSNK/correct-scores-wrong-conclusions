@@ -28,9 +28,9 @@ The workshop submission built on this evidence base:
 - [`paper/manuscripts/tae.pdf`](paper/manuscripts/tae.pdf) — 8-page body,
   *TAE (Trust-AI-Eval): Can We Trust AI Evaluation?* (NeurIPS 2026)
 
-Both are anonymized for double-blind review; author information stays in LaTeX comments
-until camera-ready. **Keep this repository private while the submissions are under
-review**: it is otherwise a deanonymization path from the paper text.
+`tae.pdf` is the double-blind review version; the camera-ready restores author
+information. The paper was accepted (non-archival) to the *TAE (Trust-AI-Eval)* workshop
+at NeurIPS 2026, and this repository is now public.
 
 ## Leaderboard
 
@@ -44,7 +44,7 @@ a reference, not a competitor.
 | — | rk4 (reference) | 0.059 | [0.032, 0.089] | 100% | numerical |
 | 1 | symplectic | 0.205 | [0.163, 0.251] | 100% | numerical |
 | 2 | euler | 0.405 | [0.344, 0.470] | 100% | numerical |
-| 3 | kimi-k2.6 | 0.538 | [0.475, 0.602] | 99% | LLM |
+| 3 | kimi-k2.6 | 0.538 | [0.475, 0.602] | 98% | LLM |
 | 4 | chronos2-multi | 0.684 | [0.617, 0.752] | 100% | time-series |
 | 5 | chronos2-uni | 0.697 | [0.631, 0.766] | 100% | time-series |
 | 6 | nearest-neighbor | 0.725 | [0.657, 0.797] | 100% | baseline |
