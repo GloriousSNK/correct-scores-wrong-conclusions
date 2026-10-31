@@ -1,0 +1,88 @@
+dataset:
+  systems:
+  - 1
+  - 2
+  - 3
+  trajectories_per_cell: 20
+  ground_truth_dt: 0.001
+  total_seconds: 65
+  pre_context_seconds: 10.0
+  seed: 42
+regimes:
+  normal:
+    g: 9.81
+    L:
+    - 1.0
+    m:
+    - 1.0
+    damping: 0.0
+  changed_disclosed:
+    g: 3.71
+    L:
+    - 1.4
+    - 0.7
+    - 1.1
+    m:
+    - 2.0
+    - 0.6
+    - 1.5
+    damping: 0.05
+  changed_hidden:
+    g: 1.62
+    L:
+    - 0.8
+    - 1.2
+    - 0.9
+    m:
+    - 0.5
+    - 1.8
+    - 1.0
+    damping: 0.1
+initial_conditions:
+  theta_low: -3.0
+  theta_high: 3.0
+  omega_low: -1.0
+  omega_high: 1.0
+horizons_seconds:
+- 1.0
+- 10.0
+modalities:
+- coords
+prompting:
+- no_cot
+rendering:
+  image_size:
+  - 512
+  - 512
+  fps: 30
+  background: '#0a0a0a'
+  grid: true
+  show_trail: false
+azure:
+  api_version: 2024-08-01-preview
+  request_timeout: 120
+  max_retries: 4
+nim:
+  base_url: https://integrate.api.nvidia.com/v1
+  request_timeout: 120
+  max_retries: 4
+models:
+- name: neural-ode-b1-i101
+  kind: learned
+  variant: neural_ode
+  checkpoint: results\training_budget_study\models\budget_1\init_101\neural_ode.pt
+- name: hnn-b1-i101
+  kind: learned
+  variant: hnn
+  checkpoint: results\training_budget_study\models\budget_1\init_101\hnn.pt
+paths:
+  results_dir: results
+  checkpoints_dir: results/checkpoints
+  raw_dir: results/raw
+  summary_dir: results/summary
+  dataset_dir: results/dataset
+  renders_dir: results/renders
+  learned_models_dir: results/learned_models
+metrics:
+  divergence_threshold_rad: 0.5
+  divergence_threshold_xy: 0.5

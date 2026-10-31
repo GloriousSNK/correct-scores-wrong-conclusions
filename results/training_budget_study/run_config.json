@@ -1,0 +1,33 @@
+{
+  "budgets_trajectories_per_cell": [
+    1,
+    5,
+    20
+  ],
+  "total_trajectories": {
+    "neural_ode": [
+      9,
+      45,
+      180
+    ],
+    "hnn": [
+      3,
+      15,
+      60
+    ]
+  },
+  "initialization_seeds": [
+    101,
+    102,
+    103
+  ],
+  "epochs": 100,
+  "max_samples_per_run": 60000,
+  "batch_size": 512,
+  "models": {
+    "neural_ode": "all regimes",
+    "hnn": "undamped normal regime only"
+  },
+  "hnn_max_samples_per_run": 20000,
+  "trajectory_seed": 42
+}
